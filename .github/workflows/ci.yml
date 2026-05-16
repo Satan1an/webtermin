@@ -44,6 +44,9 @@ jobs:
             exit 1
           fi
 
+      - name: go test (with race detector)
+        run: go test -race -count=1 ./...
+
       - name: go build (host arch)
         env:
           CGO_ENABLED: '0'

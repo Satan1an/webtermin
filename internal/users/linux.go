@@ -235,14 +235,17 @@ func parseKeyLine(line string) (SSHKey, bool) {
 	if len(parts) < 2 {
 		return SSHKey{}, false
 	}
-	keyType := parts[0]
-	keyBlob := parts[1]
+	keyType := strings.TrimSpace(parts[0])
+	keyBlob := strings.TrimSpace(parts[1])
+	if keyType == "" || keyBlob == "" {
+		return SSHKey{}, false
+	}
 	comment := ""
 	if len(parts) == 3 {
-		comment = parts[2]
+		comment = strings.TrimSpace(parts[2])
 	}
 	raw, err := base64.StdEncoding.DecodeString(keyBlob)
-	if err != nil {
+	if err != nil || len(raw) == 0 {
 		return SSHKey{}, false
 	}
 	sum := sha256.Sum256(raw)
