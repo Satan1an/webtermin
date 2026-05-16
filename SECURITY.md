@@ -1,5 +1,7 @@
 # Security policy
 
+🌐 **English** · **[Русский](SECURITY.ru.md)**
+
 ## Pre-release audit (v0.1.0, 2026-05-16)
 
 Before the first public tag the entire codebase was manually reviewed for the
