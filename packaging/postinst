@@ -1,0 +1,39 @@
+#!/bin/sh
+# webtermin .deb post-install hook.
+set -e
+
+case "$1" in
+    configure)
+        # Ensure data directory exists with strict permissions. The binary will
+        # create it too, but doing it here prevents a tiny first-run race.
+        if [ ! -d /var/lib/webtermin ]; then
+            mkdir -p /var/lib/webtermin
+        fi
+        chmod 700 /var/lib/webtermin
+
+        if command -v systemctl >/dev/null 2>&1; then
+            systemctl daemon-reload >/dev/null 2>&1 || true
+            # Enable on first install; on upgrade preserve the existing state.
+            if [ -z "$2" ]; then
+                systemctl enable webtermin.service >/dev/null 2>&1 || true
+            fi
+            # Start (initial install) or restart (upgrade picks up the new binary).
+            systemctl restart webtermin.service >/dev/null 2>&1 || true
+        fi
+
+        cat <<'EOM'
+
+webtermin installed.
+
+  Open  https://<this-host>:8443   to complete first-run setup.
+  Logs: journalctl -u webtermin -f
+  Conf: /etc/webtermin/config.yaml
+
+EOM
+        ;;
+
+    abort-upgrade|abort-remove|abort-deconfigure)
+        ;;
+esac
+
+exit 0

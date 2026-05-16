@@ -1,0 +1,22 @@
+.git
+.gitignore
+data/
+webtermin
+*.db
+*.db-journal
+server.log
+
+# Don't ship local builds — Dockerfile rebuilds them inside the image.
+web/node_modules/
+web/dist/
+
+# IDE / OS junk
+.idea/
+.vscode/
+.DS_Store
+
+# Local config — never bake secrets into the image.
+config.yaml
+
+# CI artefacts
+dist/

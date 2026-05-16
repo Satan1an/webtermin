@@ -1,0 +1,147 @@
+# GoReleaser v2 config. Build amd64+arm64 Linux binaries with embedded SPA,
+# package as .deb via nfpm, and publish a GitHub Release.
+#
+# Local dry-run:
+#   goreleaser release --snapshot --clean --skip=publish
+# Real release:
+#   git tag v0.1.0 && git push origin v0.1.0
+# (GitHub Actions picks it up; see .github/workflows/release.yml)
+
+version: 2
+
+project_name: webtermin
+
+before:
+  hooks:
+    # Build the React SPA so go:embed picks up dist/.
+    - sh -c "cd web && npm ci && npm run build"
+    - go mod tidy
+
+builds:
+  - id: webtermin
+    main: ./cmd/webtermin
+    binary: webtermin
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w
+      - -X main.version={{ .Version }}
+      - -X main.commit={{ .Commit }}
+      - -X main.date={{ .Date }}
+
+archives:
+  - id: webtermin-tar
+    formats: [tar.gz]
+    name_template: >-
+      {{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}
+    files:
+      - README.md
+      - LICENSE
+      - config.example.yaml
+      - src: packaging/webtermin.service
+        dst: webtermin.service
+
+nfpms:
+  - id: webtermin-deb
+    package_name: webtermin
+    file_name_template: >-
+      {{ .PackageName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}
+    vendor: Satan1an
+    homepage: https://github.com/Satan1an/webtermin
+    maintainer: Satan1an <work@anubis.ooo>
+    description: |-
+      Beautiful self-hosted control panel for a single Linux server.
+      Manage systemd services, Linux users, files, and a browser terminal
+      with TLS, Argon2id authentication, optional TOTP 2FA and a full
+      audit log. Single static binary with an embedded React SPA.
+    license: MIT
+    section: admin
+    priority: optional
+    formats:
+      - deb
+    bindir: /usr/bin
+    recommends:
+      - systemd
+      - passwd
+    contents:
+      - src: packaging/config.yaml
+        dst: /etc/webtermin/config.yaml
+        type: config|noreplace
+        file_info:
+          mode: 0640
+      - src: packaging/webtermin.service
+        dst: /lib/systemd/system/webtermin.service
+      - src: README.md
+        dst: /usr/share/doc/webtermin/README.md
+      - src: LICENSE
+        dst: /usr/share/doc/webtermin/LICENSE
+      - dst: /var/lib/webtermin
+        type: dir
+        file_info:
+          mode: 0700
+    scripts:
+      postinstall: packaging/postinst
+      preremove: packaging/prerm
+      postremove: packaging/postrm
+
+checksum:
+  name_template: 'checksums.txt'
+
+snapshot:
+  version_template: '{{ incpatch .Version }}-next'
+
+release:
+  draft: false
+  prerelease: auto
+  github:
+    owner: Satan1an
+    name: webtermin
+  header: |
+    ## webtermin {{ .Tag }}
+
+    Self-hosted, beautiful, security-first alternative to Webmin for a single Linux server.
+  footer: |
+    ### Install on Debian/Ubuntu/OrangePi/RPi
+
+    **amd64**
+    ```bash
+    curl -fsSL -o webtermin.deb \
+      https://github.com/Satan1an/webtermin/releases/download/{{ .Tag }}/webtermin_{{ .Version }}_linux_amd64.deb
+    sudo apt install ./webtermin.deb
+    ```
+
+    **arm64 (OrangePi 5 Pro, Raspberry Pi 4/5, ARM cloud VMs)**
+    ```bash
+    curl -fsSL -o webtermin.deb \
+      https://github.com/Satan1an/webtermin/releases/download/{{ .Tag }}/webtermin_{{ .Version }}_linux_arm64.deb
+    sudo apt install ./webtermin.deb
+    ```
+
+    After install: open `https://<host>:8443` and complete first-run setup.
+
+changelog:
+  use: github
+  sort: asc
+  groups:
+    - title: Features
+      regexp: '^.*?feat(\([[:word:]]+\))??!?:.+$'
+      order: 0
+    - title: Bug fixes
+      regexp: '^.*?fix(\([[:word:]]+\))??!?:.+$'
+      order: 1
+    - title: Other
+      order: 999
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^chore:'
+      - '^ci:'
+      - '^style:'

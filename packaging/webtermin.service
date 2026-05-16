@@ -1,0 +1,30 @@
+[Unit]
+Description=webtermin server control panel
+Documentation=https://github.com/Satan1an/webtermin
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/webtermin -config /etc/webtermin/config.yaml
+# webtermin must run as root to manage system users, services, and files.
+User=root
+Group=root
+Restart=on-failure
+RestartSec=3
+# Surface stdout/stderr in journal.
+StandardOutput=journal
+StandardError=journal
+
+# Minimal hardening that doesn't conflict with the panel's job:
+# - prevent the panel binary from gaining new privileges via setuid helpers it spawns
+NoNewPrivileges=false
+# - hide other processes' details (panel still sees full PIDs from D-Bus)
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=false
+# Note: we intentionally do NOT set ProtectSystem=full or ProtectHome — the
+# panel manages /etc and /home, so those must stay writable.
+
+[Install]
+WantedBy=multi-user.target

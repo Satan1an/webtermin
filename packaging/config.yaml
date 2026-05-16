@@ -1,0 +1,27 @@
+# webtermin system configuration (installed as conffile by .deb).
+# Local edits are preserved across upgrades.
+
+server:
+  listen: "0.0.0.0:8443"
+  # Leave empty to auto-generate a self-signed cert into data_dir/tls/.
+  # Point at your own PEMs to use a CA-issued certificate instead.
+  tls_cert: ""
+  tls_key: ""
+  external_host: ""
+
+# System-wide data directory: SQLite DB, sessions, generated TLS cert.
+data_dir: "/var/lib/webtermin"
+
+security:
+  session_ttl_min: 240
+  pty_idle_timeout_min: 30
+  require_2fa: false
+  max_login_attempts: 5
+  lockout_min: 15
+
+terminal:
+  # Empty = use the Linux user's default shell from /etc/passwd, fallback /bin/bash.
+  default_shell: ""
+
+logging:
+  level: "info"

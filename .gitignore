@@ -1,0 +1,21 @@
+/webtermin
+/webtermin-arm64
+/webtermin-amd64
+/dist/
+/data/
+/server.log
+# Runtime config — never commit. Users start from config.example.yaml.
+/config.yaml
+*.db
+*.db-journal
+*.pem
+*.key
+*.crt
+/web/node_modules/
+/web/*.tsbuildinfo
+# Don't commit the built bundle, but keep the dir so go:embed can resolve at clone time.
+/web/dist/*
+!/web/dist/.gitkeep
+.env
+.env.local
+.DS_Store

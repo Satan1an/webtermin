@@ -1,0 +1,83 @@
+name: Bug report
+description: Something doesn't work the way it should.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug report. The more concrete you
+        can be, the faster we can help — please don't skip the reproduction
+        section.
+
+  - type: input
+    id: version
+    attributes:
+      label: webtermin version
+      description: Run `webtermin -version` or check the package version (`dpkg -l webtermin`).
+      placeholder: "v0.1.0"
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: Host OS / kernel / arch
+      description: e.g. `Debian 12 trixie / 6.1.0-26-arm64 / aarch64` — `uname -a` is fine.
+      placeholder: "Debian 12 / 6.1.0-26-arm64 / aarch64"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: install
+    attributes:
+      label: How did you install it?
+      options:
+        - .deb package
+        - Built from source
+        - Docker / docker compose
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: A clear description of the actual behaviour you observed.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Go to '...'
+        2. Click '...'
+        3. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Output of `journalctl -u webtermin -n 200 --no-pager`. Redact anything sensitive.
+      render: shell
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Pre-flight
+      options:
+        - label: I searched existing issues and didn't find a duplicate.
+          required: true
+        - label: I'm not reporting a security issue (those go through SECURITY.md).
+          required: true

@@ -1,0 +1,25 @@
+#!/bin/sh
+# webtermin .deb post-removal hook.
+set -e
+
+case "$1" in
+    purge)
+        # Only on purge: drop the data directory (DB, sessions, generated certs).
+        rm -rf /var/lib/webtermin
+
+        if command -v systemctl >/dev/null 2>&1; then
+            systemctl daemon-reload >/dev/null 2>&1 || true
+        fi
+        ;;
+
+    remove)
+        if command -v systemctl >/dev/null 2>&1; then
+            systemctl daemon-reload >/dev/null 2>&1 || true
+        fi
+        ;;
+
+    upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)
+        ;;
+esac
+
+exit 0

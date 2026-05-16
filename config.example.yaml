@@ -1,0 +1,34 @@
+# webtermin configuration. Copy to config.yaml and edit.
+
+server:
+  # bind address. Use 127.0.0.1 if you put a reverse proxy in front.
+  listen: "0.0.0.0:8443"
+  # paths to TLS cert/key. If empty, a self-signed cert is generated on first run
+  # and stored under data_dir.
+  tls_cert: ""
+  tls_key: ""
+  # trust hosts (for HSTS / cookie domain). Optional.
+  external_host: ""
+
+# directory for SQLite db, generated certs, sessions.
+data_dir: "./data"
+
+security:
+  # session lifetime in minutes
+  session_ttl_min: 240
+  # idle terminal session timeout in minutes
+  pty_idle_timeout_min: 30
+  # require TOTP 2FA for all users
+  require_2fa: false
+  # max failed login attempts before lockout (per IP)
+  max_login_attempts: 5
+  # lockout duration in minutes
+  lockout_min: 15
+
+# allowed shell for the web terminal (per-user fallback). Leave empty to use the
+# Linux user's default shell from /etc/passwd.
+terminal:
+  default_shell: ""
+
+logging:
+  level: "info" # debug | info | warn | error

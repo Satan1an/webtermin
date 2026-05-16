@@ -1,0 +1,57 @@
+# webtermin via docker compose.
+#
+# IMPORTANT: a server-management panel inside a container must reach the HOST
+# (systemd, /etc/passwd, host filesystem, PTYs). The mounts/privileges below
+# effectively give this container full control of the host. Treat the image
+# and the panel password with the same care you'd give root SSH access.
+#
+# After `docker compose up -d`, open:
+#   https://<host>:8443
+# The first visit walks you through creating the admin account.
+
+services:
+  webtermin:
+    build: .
+    image: webtermin:local
+    container_name: webtermin
+    restart: unless-stopped
+
+    # Required to drive host systemd over D-Bus, run useradd/chpasswd, etc.
+    privileged: true
+    pid: host
+
+    # Listen on a host port; bind to 127.0.0.1 if you put a reverse proxy in front.
+    ports:
+      - "8443:8443"
+
+    volumes:
+      # Persisted DB / sessions / TLS cert.
+      - ./data:/app/data
+
+      # Optional: your own config.yaml (otherwise defaults from config.example.yaml apply).
+      # - ./config.yaml:/app/config.yaml:ro
+
+      # Host D-Bus for systemd control.
+      - /run/dbus:/run/dbus
+      - /var/run/dbus:/var/run/dbus
+
+      # Host systemd socket — needed by go-systemd for unit ops.
+      - /run/systemd:/run/systemd
+
+      # journalctl needs access to host journal files.
+      - /var/log/journal:/var/log/journal:ro
+      - /run/log/journal:/run/log/journal:ro
+
+      # /etc — for /etc/passwd reads and shadow-utils writes (useradd, chpasswd).
+      - /etc:/etc
+
+      # /home so SSH authorized_keys reach the right user dirs.
+      - /home:/home
+
+      # File manager needs to see real host filesystem; remove this mount to
+      # restrict the panel to the container's own FS instead.
+      - /:/host:rw
+
+    environment:
+      # Optional: override log level
+      - TZ=UTC
