@@ -16,7 +16,7 @@ RUN npm run build
 # --- 2. Cross-compile the Go binary natively on the build host ---
 # CGO_ENABLED=0 + modernc.org/sqlite means no C toolchain is needed; we just
 # set GOARCH from buildx's TARGETARCH and produce a static arm64/amd64 binary.
-FROM --platform=$BUILDPLATFORM golang:1.25-bookworm AS go
+FROM --platform=$BUILDPLATFORM golang:1.26-bookworm AS go
 ARG TARGETOS
 ARG TARGETARCH
 WORKDIR /src
