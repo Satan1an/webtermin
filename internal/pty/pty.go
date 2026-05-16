@@ -115,7 +115,10 @@ func Start(username, defaultShell string, rows, cols uint16) (*Session, error) {
 		return nil, errors.New("shell not found: " + shell)
 	}
 
-	cmd := exec.Command(shell, "-l") //nosec G204 -- shell is allowlisted via /etc/shells above
+	// shell is validated against /etc/shells immediately above; gosec G204
+	// (legacy exec audit) and G702 (taint-analysis variant) both flag this
+	// generically — we silence them on this specific line, not globally.
+	cmd := exec.Command(shell, "-l") //#nosec G204,G702
 
 	cmd.Env = append(os.Environ(),
 		"TERM=xterm-256color",

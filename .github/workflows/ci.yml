@@ -101,8 +101,9 @@ jobs:
       #   G301 — directory 0o755 (intentional for mkdir-like behaviour)
       #   G302 — file 0o644 (intentional for uploads)
       #   G304 — file path from variable (the entire point of internal/files)
+      #   G703 — taint-analysis variant of the same path-from-variable concern
       - name: gosec (fail on HIGH severity only)
-        run: gosec -severity high -confidence high -exclude=G104,G301,G302,G304 ./...
+        run: gosec -severity high -confidence high -exclude=G104,G301,G302,G304,G703 ./...
 
       - name: govulncheck (Go stdlib + dependency CVEs)
         run: |
