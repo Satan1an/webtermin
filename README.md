@@ -78,7 +78,7 @@ make docker        # local Docker image
 make docker-arm64  # arm64 Docker image via buildx
 ```
 
-Requires Go ≥ 1.25 and Node ≥ 20.
+Requires Go ≥ 1.25 and Node ≥ 22 (LTS).
 
 ## Configuration
 

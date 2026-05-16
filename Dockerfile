@@ -6,7 +6,7 @@
 #   docker buildx build --platform linux/amd64,linux/arm64 -t webtermin:latest --push .
 
 # --- 1. Build the React SPA (always on the build host — pure JS) ---
-FROM --platform=$BUILDPLATFORM node:20-bookworm-slim AS web
+FROM --platform=$BUILDPLATFORM node:22-bookworm-slim AS web
 WORKDIR /web
 COPY web/package.json web/package-lock.json* ./
 RUN --mount=type=cache,target=/root/.npm npm install
