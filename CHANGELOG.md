@@ -7,6 +7,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-05-16
+
+### Added
+
+- **Role-based access control (RBAC)**. Three hierarchical roles:
+  - `viewer` — read-only dashboard / services / files / Linux users / audit-less
+  - `operator` — viewer + start/stop services, modify files, open web terminal
+  - `admin` — operator + create/delete Linux users, manage panel users,
+    read the audit log
+  Existing v0.1 admin accounts migrate to `role = 'admin'` automatically.
+- **Panel-users page** (admin-only) — list, create, change role, reset
+  password, delete. Guard prevents removing or downgrading the last admin
+  so the system stays recoverable.
+- Frontend role badges in the user dropdown and disabled mutating buttons
+  when the current user lacks the required role.
+- `webtermin -version` flag now prints version, commit, and build date.
+- Russian-language README (`README.ru.md`) and SECURITY policy
+  (`SECURITY.ru.md`) with a language toggle from the English originals.
+
+### Added — testing
+
+- `go test ./...` now covers ~60 cases across `auth`, `files`, `users`,
+  `systemd`, and `server`. Race detector enabled. Highlights:
+  - End-to-end auth flow via `httptest` (setup → login → CSRF guard →
+    logout → re-auth-rejected).
+  - RBAC matrix: viewer can't mutate, operator can't manage users, admin
+    can; last-admin guard blocks self-demotion.
+  - Argon2id roundtrip + salt uniqueness, TOTP code validation, login
+    lockout, per-IP isolation, expired session rejection.
+  - `files.SafePath` traversal/sibling-prefix attacks; `parseKeyLine` no
+    longer accepts empty blobs.
+  - `systemd.ValidUnitName` against shell-metachar adversaries.
+- CI gains a `go test -race -count=1 ./...` step.
+
+### Changed
+
+- `store.CreateUser` now takes a `role` argument. Callers updated.
+- `gosec` strict gate excludes the noisy taint-analysis siblings G703
+  (the new G304-equivalent) on top of the existing G104/G301/G302/G304.
+
+### Fixed
+
+- `parseKeyLine("   ")` previously returned a "valid" key with an empty
+  blob and a fingerprint of the empty string. Now requires non-empty type,
+  blob, and decoded raw bytes. Discovered by the new test suite.
+
 ## [0.1.0] — 2026-05-16
 
 ### Security
@@ -53,5 +99,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `.deb` packaging for `linux/amd64` and `linux/arm64` via GoReleaser + nfpm.
 - GitHub Actions: CI on PR/push (build + cross-build + go vet) and Release on tag (full GoReleaser flow).
 
-[Unreleased]: https://github.com/Satan1an/webtermin/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/Satan1an/webtermin/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/Satan1an/webtermin/releases/tag/v0.2.0
 [0.1.0]: https://github.com/Satan1an/webtermin/releases/tag/v0.1.0

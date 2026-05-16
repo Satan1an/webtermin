@@ -24,7 +24,7 @@ import {
 import { api, ApiError } from "@/lib/api";
 import { toast } from "@/components/ui/toast";
 import { formatBytes } from "@/lib/utils";
-import { useAuth } from "@/store/auth";
+import { useAuth, useCanWrite } from "@/store/auth";
 
 interface Entry {
   name: string;
@@ -44,6 +44,7 @@ export function FilesPage() {
   const [editing, setEditing] = useState<{ path: string; content: string } | null>(null);
   const [language, setLanguage] = useState("plaintext");
   const [busy, setBusy] = useState(false);
+  const canWrite = useCanWrite();
 
   const load = async (path: string) => {
     try {
@@ -171,23 +172,27 @@ export function FilesPage() {
           </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={mkdir}>
-            <Plus className="h-4 w-4" /> Folder
-          </Button>
-          <label className="inline-block">
-            <input
-              type="file"
-              className="hidden"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) void upload(f);
-                e.target.value = "";
-              }}
-            />
-            <Button variant="outline" size="sm" asChild>
-              <span><Upload className="h-4 w-4" /> Upload</span>
-            </Button>
-          </label>
+          {canWrite && (
+            <>
+              <Button variant="outline" size="sm" onClick={mkdir}>
+                <Plus className="h-4 w-4" /> Folder
+              </Button>
+              <label className="inline-block">
+                <input
+                  type="file"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) void upload(f);
+                    e.target.value = "";
+                  }}
+                />
+                <Button variant="outline" size="sm" asChild>
+                  <span><Upload className="h-4 w-4" /> Upload</span>
+                </Button>
+              </label>
+            </>
+          )}
           <Button
             variant="ghost"
             size="sm"
@@ -248,9 +253,11 @@ export function FilesPage() {
                       <Download className="h-4 w-4" />
                     </a>
                   )}
-                  <Button variant="ghost" size="icon" onClick={() => remove(e)} title="Delete">
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
+                  {canWrite && (
+                    <Button variant="ghost" size="icon" onClick={() => remove(e)} title="Delete">
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  )}
                 </div>
               </div>
             ))}
@@ -287,8 +294,8 @@ export function FilesPage() {
             />
           </div>
           <div className="flex justify-end">
-            <Button onClick={save} disabled={busy}>
-              <Save className="h-4 w-4" /> {busy ? "Saving…" : "Save"}
+            <Button onClick={save} disabled={busy || !canWrite} title={canWrite ? "" : "Read-only — your role can't modify files"}>
+              <Save className="h-4 w-4" /> {busy ? "Saving…" : canWrite ? "Save" : "Read-only"}
             </Button>
           </div>
         </DialogContent>

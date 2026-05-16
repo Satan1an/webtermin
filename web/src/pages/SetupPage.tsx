@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { api, ApiError } from "@/lib/api";
 import { toast } from "@/components/ui/toast";
-import { useAuth } from "@/store/auth";
+import { useAuth, type Role } from "@/store/auth";
 
 export function SetupPage() {
   const [u, setU] = useState("");
@@ -29,6 +29,7 @@ export function SetupPage() {
       const me = await api.post<{
         user: string;
         is_admin: boolean;
+        role: Role;
         csrf_token: string;
         has_2fa: boolean;
       }>("/api/auth/login", { username: u, password: p });

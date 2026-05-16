@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { api, ApiError } from "@/lib/api";
-import { useAuth } from "@/store/auth";
+import { useAuth, type Role } from "@/store/auth";
 import { toast } from "@/components/ui/toast";
 
 export function LoginPage() {
@@ -26,6 +26,7 @@ export function LoginPage() {
       const me = await api.post<{
         user: string;
         is_admin: boolean;
+        role: Role;
         csrf_token: string;
         has_2fa: boolean;
       }>("/api/auth/login", { username, password, totp });

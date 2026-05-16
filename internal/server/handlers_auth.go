@@ -9,6 +9,7 @@ import (
 
 	"github.com/Satan1an/webtermin/internal/audit"
 	"github.com/Satan1an/webtermin/internal/auth"
+	"github.com/Satan1an/webtermin/internal/store"
 )
 
 type loginReq struct {
@@ -19,9 +20,20 @@ type loginReq struct {
 
 type sessionInfo struct {
 	User      string `json:"user"`
-	IsAdmin   bool   `json:"is_admin"`
+	IsAdmin   bool   `json:"is_admin"` // kept for v0.1 clients; derived from role
+	Role      string `json:"role"`
 	CSRFToken string `json:"csrf_token"`
 	Has2FA    bool   `json:"has_2fa"`
+}
+
+func toSessionInfo(u *store.User, csrf string) sessionInfo {
+	return sessionInfo{
+		User:      u.Username,
+		IsAdmin:   u.Role == string(auth.RoleAdmin),
+		Role:      u.Role,
+		CSRFToken: csrf,
+		Has2FA:    u.TOTPSecret != "",
+	}
 }
 
 func (s *Server) handleAuthStatus(w http.ResponseWriter, r *http.Request) {
@@ -36,10 +48,7 @@ func (s *Server) handleAuthStatus(w http.ResponseWriter, r *http.Request) {
 	// If a session cookie is set and valid, surface user info.
 	if c, err := r.Cookie(auth.SessionCookieName); err == nil && c.Value != "" {
 		if sess, u, err := s.Auth.LookupSession(c.Value); err == nil {
-			resp["user"] = sessionInfo{
-				User: u.Username, IsAdmin: u.IsAdmin,
-				CSRFToken: sess.CSRFToken, Has2FA: u.TOTPSecret != "",
-			}
+			resp["user"] = toSessionInfo(u, sess.CSRFToken)
 		}
 	}
 	writeJSON(w, 200, resp)
@@ -80,10 +89,7 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		UserID: &uid, Username: res.User.Username, IP: ip, Action: "auth.login",
 		Outcome: audit.OutcomeOK,
 	})
-	writeJSON(w, 200, sessionInfo{
-		User: res.User.Username, IsAdmin: res.User.IsAdmin,
-		CSRFToken: res.Session.CSRFToken, Has2FA: res.User.TOTPSecret != "",
-	})
+	writeJSON(w, 200, toSessionInfo(res.User, res.Session.CSRFToken))
 }
 
 func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request) {
@@ -103,10 +109,7 @@ func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleMe(w http.ResponseWriter, r *http.Request) {
 	sess := SessionFrom(r)
 	u := UserFrom(r)
-	writeJSON(w, 200, sessionInfo{
-		User: u.Username, IsAdmin: u.IsAdmin,
-		CSRFToken: sess.CSRFToken, Has2FA: u.TOTPSecret != "",
-	})
+	writeJSON(w, 200, toSessionInfo(u, sess.CSRFToken))
 }
 
 type setupReq struct {
@@ -143,7 +146,7 @@ func (s *Server) handleFirstRunSetup(w http.ResponseWriter, r *http.Request) {
 		writeJSONError(w, 500, "hash failed")
 		return
 	}
-	u, err := s.Store.CreateUser(req.Username, hash, "", true)
+	u, err := s.Store.CreateUser(req.Username, hash, "", string(auth.RoleAdmin), true)
 	if err != nil {
 		writeJSONError(w, 500, err.Error())
 		return

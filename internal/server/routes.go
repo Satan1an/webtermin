@@ -4,6 +4,8 @@ import (
 	"io/fs"
 	"net/http"
 	"strings"
+
+	"github.com/Satan1an/webtermin/internal/auth"
 )
 
 func (s *Server) routes() http.Handler {
@@ -14,42 +16,63 @@ func (s *Server) routes() http.Handler {
 	mux.HandleFunc("POST /api/auth/login", s.handleLogin)
 	mux.HandleFunc("POST /api/auth/setup", s.handleFirstRunSetup)
 
-	// Everything below requires a valid session + CSRF token.
+	// Everything below requires a valid session + CSRF token. Per-endpoint
+	// role policy: viewer is the floor, operator can perform write actions
+	// (start/stop services, manage files, open terminals), admin can manage
+	// panel users + Linux system users and read the audit log.
 	authed := http.NewServeMux()
+
+	// Session basics — any authed user.
 	authed.HandleFunc("POST /api/auth/logout", s.handleLogout)
 	authed.HandleFunc("GET /api/auth/me", s.handleMe)
-	authed.HandleFunc("GET /api/auth/audit", s.handleAuditList)
 
+	// 2FA enrollment manages own account — any authed user.
 	authed.HandleFunc("POST /api/auth/2fa/enroll", s.handle2FAEnroll)
 	authed.HandleFunc("POST /api/auth/2fa/verify", s.handle2FAVerify)
 	authed.HandleFunc("POST /api/auth/2fa/disable", s.handle2FADisable)
 
+	// Audit log is sensitive — admin-only.
+	authed.HandleFunc("GET /api/auth/audit", s.protected(auth.RoleAdmin, s.handleAuditList))
+
+	// Panel-user management (this is the RBAC self-management surface).
+	authed.HandleFunc("GET /api/panel/users", s.protected(auth.RoleAdmin, s.handlePanelUsersList))
+	authed.HandleFunc("POST /api/panel/users", s.protected(auth.RoleAdmin, s.handlePanelUserCreate))
+	authed.HandleFunc("DELETE /api/panel/users/{id}", s.protected(auth.RoleAdmin, s.handlePanelUserDelete))
+	authed.HandleFunc("POST /api/panel/users/{id}/role", s.protected(auth.RoleAdmin, s.handlePanelUserSetRole))
+	authed.HandleFunc("POST /api/panel/users/{id}/password", s.protected(auth.RoleAdmin, s.handlePanelUserSetPassword))
+
+	// Read-only system metrics — viewer is enough.
 	authed.HandleFunc("GET /api/system/info", s.handleSystemInfo)
 	authed.HandleFunc("GET /api/system/metrics", s.handleSystemMetrics)
 	authed.HandleFunc("GET /api/system/metrics/stream", s.handleSystemMetricsStream)
 
+	// systemd — list/journal anyone authed; start/stop is an Operator action.
 	authed.HandleFunc("GET /api/services", s.handleServicesList)
-	authed.HandleFunc("POST /api/services/{name}/action", s.handleServiceAction)
 	authed.HandleFunc("GET /api/services/{name}/journal/stream", s.handleServiceJournalStream)
+	authed.HandleFunc("POST /api/services/{name}/action", s.protected(auth.RoleOperator, s.handleServiceAction))
 
-	authed.HandleFunc("GET /api/linux/users", s.handleLinuxUsersList)
-	authed.HandleFunc("POST /api/linux/users", s.handleLinuxUserCreate)
-	authed.HandleFunc("DELETE /api/linux/users/{name}", s.handleLinuxUserDelete)
-	authed.HandleFunc("POST /api/linux/users/{name}/password", s.handleLinuxUserPassword)
-	authed.HandleFunc("GET /api/linux/users/{name}/keys", s.handleLinuxUserKeysList)
-	authed.HandleFunc("POST /api/linux/users/{name}/keys", s.handleLinuxUserKeyAdd)
-	authed.HandleFunc("DELETE /api/linux/users/{name}/keys/{fp}", s.handleLinuxUserKeyDelete)
+	// Linux system users — listing is operator+; mutating is admin-only because
+	// adding/removing Linux accounts has system-wide blast radius.
+	authed.HandleFunc("GET /api/linux/users", s.protected(auth.RoleOperator, s.handleLinuxUsersList))
+	authed.HandleFunc("POST /api/linux/users", s.protected(auth.RoleAdmin, s.handleLinuxUserCreate))
+	authed.HandleFunc("DELETE /api/linux/users/{name}", s.protected(auth.RoleAdmin, s.handleLinuxUserDelete))
+	authed.HandleFunc("POST /api/linux/users/{name}/password", s.protected(auth.RoleAdmin, s.handleLinuxUserPassword))
+	authed.HandleFunc("GET /api/linux/users/{name}/keys", s.protected(auth.RoleOperator, s.handleLinuxUserKeysList))
+	authed.HandleFunc("POST /api/linux/users/{name}/keys", s.protected(auth.RoleAdmin, s.handleLinuxUserKeyAdd))
+	authed.HandleFunc("DELETE /api/linux/users/{name}/keys/{fp}", s.protected(auth.RoleAdmin, s.handleLinuxUserKeyDelete))
 
+	// Files — reads to anyone authed, mutations operator+.
 	authed.HandleFunc("GET /api/files/list", s.handleFilesList)
 	authed.HandleFunc("GET /api/files/read", s.handleFileRead)
-	authed.HandleFunc("POST /api/files/write", s.handleFileWrite)
-	authed.HandleFunc("POST /api/files/upload", s.handleFileUpload)
 	authed.HandleFunc("GET /api/files/download", s.handleFileDownload)
-	authed.HandleFunc("POST /api/files/mkdir", s.handleFileMkdir)
-	authed.HandleFunc("DELETE /api/files/delete", s.handleFileDelete)
-	authed.HandleFunc("POST /api/files/chmod", s.handleFileChmod)
+	authed.HandleFunc("POST /api/files/write", s.protected(auth.RoleOperator, s.handleFileWrite))
+	authed.HandleFunc("POST /api/files/upload", s.protected(auth.RoleOperator, s.handleFileUpload))
+	authed.HandleFunc("POST /api/files/mkdir", s.protected(auth.RoleOperator, s.handleFileMkdir))
+	authed.HandleFunc("DELETE /api/files/delete", s.protected(auth.RoleOperator, s.handleFileDelete))
+	authed.HandleFunc("POST /api/files/chmod", s.protected(auth.RoleOperator, s.handleFileChmod))
 
-	authed.HandleFunc("GET /api/terminal/ws", s.handleTerminalWS)
+	// Terminal — operator+. A PTY is effectively a shell-exec on the host.
+	authed.HandleFunc("GET /api/terminal/ws", s.protected(auth.RoleOperator, s.handleTerminalWS))
 
 	mux.Handle("/api/auth/logout", s.requireSession(s.requireCSRF(authed)))
 	mux.Handle("/api/", s.requireSession(s.requireCSRF(authed)))

@@ -86,6 +86,22 @@ func isSafeMethod(m string) bool {
 	return false
 }
 
+// protected wraps a handler with a minimum-role check. Caller must have already
+// passed requireSession (so UserFrom is populated). Use it like:
+//
+//	authed.HandleFunc("POST /api/services/{name}/action",
+//	    s.protected(auth.RoleOperator, s.handleServiceAction))
+func (s *Server) protected(minRole auth.Role, h http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		u := UserFrom(r)
+		if u == nil || !auth.AtLeast(auth.Role(u.Role), minRole) {
+			writeJSONError(w, http.StatusForbidden, "insufficient role")
+			return
+		}
+		h(w, r)
+	}
+}
+
 func writeJSON(w http.ResponseWriter, status int, v any) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(status)

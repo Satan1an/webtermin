@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { api } from "@/lib/api";
-import { useAuth } from "@/store/auth";
+import { useAuth, type Role } from "@/store/auth";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { LoginPage } from "@/pages/LoginPage";
 import { SetupPage } from "@/pages/SetupPage";
@@ -11,6 +11,7 @@ import { UsersPage } from "@/pages/UsersPage";
 import { FilesPage } from "@/pages/FilesPage";
 import { TerminalPage } from "@/pages/TerminalPage";
 import { AuditPage } from "@/pages/AuditPage";
+import { PanelUsersPage } from "@/pages/PanelUsersPage";
 import { Toaster } from "@/components/ui/toast";
 import { motion } from "framer-motion";
 
@@ -23,7 +24,7 @@ export default function App() {
       try {
         const status = await api.get<{
           needs_setup: boolean;
-          user?: { user: string; is_admin: boolean; csrf_token: string; has_2fa: boolean };
+          user?: { user: string; is_admin: boolean; role: Role; csrf_token: string; has_2fa: boolean };
         }>("/api/auth/status");
         auth.setNeedsSetup(status.needs_setup);
         if (status.user) auth.set(status.user);
@@ -57,6 +58,7 @@ export default function App() {
             <Route path="/files" element={<FilesPage />} />
             <Route path="/terminal" element={<TerminalPage />} />
             <Route path="/audit" element={<AuditPage />} />
+            <Route path="/panel-users" element={<PanelUsersPage />} />
             <Route path="*" element={<NavigateAfterLogin />} />
           </Route>
         ) : (

@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { api, ApiError, wsURL } from "@/lib/api";
 import { toast } from "@/components/ui/toast";
+import { useCanWrite } from "@/store/auth";
 import {
   Dialog,
   DialogContent,
@@ -36,6 +37,7 @@ export function ServicesPage() {
   const [filter, setFilter] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   const [journal, setJournal] = useState<string | null>(null);
+  const canWrite = useCanWrite();
 
   const load = async () => {
     try {
@@ -135,8 +137,8 @@ export function ServicesPage() {
                   <Button
                     size="icon"
                     variant="ghost"
-                    title="Start"
-                    disabled={!!busy}
+                    title={canWrite ? "Start" : "Read-only — your role can't control services"}
+                    disabled={!!busy || !canWrite}
                     onClick={() => act(u.name, "start")}
                   >
                     <Play className="h-4 w-4" />
@@ -144,8 +146,8 @@ export function ServicesPage() {
                   <Button
                     size="icon"
                     variant="ghost"
-                    title="Restart"
-                    disabled={!!busy}
+                    title={canWrite ? "Restart" : "Read-only"}
+                    disabled={!!busy || !canWrite}
                     onClick={() => act(u.name, "restart")}
                   >
                     <RotateCw className="h-4 w-4" />
@@ -153,8 +155,8 @@ export function ServicesPage() {
                   <Button
                     size="icon"
                     variant="ghost"
-                    title="Stop"
-                    disabled={!!busy}
+                    title={canWrite ? "Stop" : "Read-only"}
+                    disabled={!!busy || !canWrite}
                     onClick={() => act(u.name, "stop")}
                   >
                     <Square className="h-4 w-4" />

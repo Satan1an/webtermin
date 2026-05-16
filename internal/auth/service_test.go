@@ -26,7 +26,7 @@ func createUser(t *testing.T, st *store.Store, name, pw string) *store.User {
 	if err != nil {
 		t.Fatalf("hash: %v", err)
 	}
-	u, err := st.CreateUser(name, h, "", true)
+	u, err := st.CreateUser(name, h, "", "admin", true)
 	if err != nil {
 		t.Fatalf("create user: %v", err)
 	}

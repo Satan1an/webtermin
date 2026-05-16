@@ -19,6 +19,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { api, ApiError } from "@/lib/api";
 import { toast } from "@/components/ui/toast";
+import { useIsAdmin } from "@/store/auth";
 
 interface LinuxUser {
   name: string;
@@ -41,6 +42,7 @@ export function UsersPage() {
   const [users, setUsers] = useState<LinuxUser[]>([]);
   const [createOpen, setCreateOpen] = useState(false);
   const [keysFor, setKeysFor] = useState<string | null>(null);
+  const isAdmin = useIsAdmin();
 
   const load = async () => {
     try {
@@ -73,9 +75,11 @@ export function UsersPage() {
           <h1 className="text-2xl font-semibold tracking-tight">Linux users</h1>
           <p className="text-sm text-muted-foreground">{users.length} non-system accounts</p>
         </div>
-        <Button onClick={() => setCreateOpen(true)}>
-          <Plus className="h-4 w-4" /> New user
-        </Button>
+        {isAdmin && (
+          <Button onClick={() => setCreateOpen(true)}>
+            <Plus className="h-4 w-4" /> New user
+          </Button>
+        )}
       </div>
 
       <Card>
@@ -118,14 +122,16 @@ export function UsersPage() {
                   >
                     <Key className="h-4 w-4" />
                   </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    title="Delete"
-                    onClick={() => remove(u.name)}
-                  >
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
+                  {isAdmin && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      title="Delete"
+                      onClick={() => remove(u.name)}
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  )}
                 </div>
               </div>
             ))}

@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"time"
 
+	// Pure-Go SQLite driver (no CGO).
 	_ "modernc.org/sqlite"
 )
 
@@ -40,6 +41,7 @@ CREATE TABLE IF NOT EXISTS users (
     pw_hash      TEXT NOT NULL,
     totp_secret  TEXT NOT NULL DEFAULT '',
     is_admin     INTEGER NOT NULL DEFAULT 0,
+    role         TEXT NOT NULL DEFAULT 'admin',
     created_at   INTEGER NOT NULL,
     updated_at   INTEGER NOT NULL
 );
@@ -81,7 +83,35 @@ CREATE INDEX IF NOT EXISTS idx_login_attempts_ip_ts ON login_attempts(ip, ts);
 `
 
 func (s *Store) migrate() error {
-	_, err := s.DB.Exec(schema)
+	if _, err := s.DB.Exec(schema); err != nil {
+		return err
+	}
+	// Upgrade-path: pre-RBAC databases need the column added explicitly.
+	// `ADD COLUMN` is safe under SQLite — it's a metadata-only operation.
+	return s.ensureColumn("users", "role", "TEXT NOT NULL DEFAULT 'admin'")
+}
+
+// ensureColumn adds `column` to `table` only if it doesn't already exist.
+// Returns nil for both "already there" and "added successfully".
+func (s *Store) ensureColumn(table, column, definition string) error {
+	rows, err := s.DB.Query("PRAGMA table_info(" + table + ")")
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var cid int
+		var name, ctype string
+		var notnull, pk int
+		var dflt sql.NullString
+		if err := rows.Scan(&cid, &name, &ctype, &notnull, &dflt, &pk); err != nil {
+			return err
+		}
+		if name == column {
+			return nil
+		}
+	}
+	_, err = s.DB.Exec("ALTER TABLE " + table + " ADD COLUMN " + column + " " + definition)
 	return err
 }
 

@@ -7,11 +7,13 @@ import {
   LogOut,
   ScrollText,
   Settings2,
+  Shield,
   TerminalSquare,
   UserRound,
   Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Dropdown,
   DropdownContent,
@@ -20,24 +22,28 @@ import {
   DropdownTrigger,
 } from "@/components/ui/dropdown";
 import { Separator } from "@/components/ui/separator";
-import { useAuth } from "@/store/auth";
+import { useAuth, useIsAdmin } from "@/store/auth";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { toast } from "@/components/ui/toast";
 
 const navItems = [
-  { to: "/dashboard", label: "Dashboard", icon: Activity },
-  { to: "/services", label: "Services", icon: CircuitBoard },
-  { to: "/users", label: "Users", icon: Users },
-  { to: "/files", label: "Files", icon: Files },
-  { to: "/terminal", label: "Terminal", icon: TerminalSquare },
-  { to: "/audit", label: "Audit log", icon: ScrollText },
+  { to: "/dashboard", label: "Dashboard", icon: Activity, adminOnly: false },
+  { to: "/services", label: "Services", icon: CircuitBoard, adminOnly: false },
+  { to: "/users", label: "Users", icon: Users, adminOnly: false },
+  { to: "/files", label: "Files", icon: Files, adminOnly: false },
+  { to: "/terminal", label: "Terminal", icon: TerminalSquare, adminOnly: false },
+  { to: "/panel-users", label: "Panel users", icon: Shield, adminOnly: true },
+  { to: "/audit", label: "Audit log", icon: ScrollText, adminOnly: true },
 ];
 
 export function AppLayout() {
   const auth = useAuth();
+  const isAdmin = useIsAdmin();
   const nav = useNavigate();
   const loc = useLocation();
+
+  const visibleNav = navItems.filter((it) => !it.adminOnly || isAdmin);
 
   const logout = async () => {
     try {
@@ -59,7 +65,7 @@ export function AppLayout() {
         </div>
         <Separator />
         <nav className="flex-1 px-3 py-4 space-y-1">
-          {navItems.map((it) => (
+          {visibleNav.map((it) => (
             <NavLink
               key={it.to}
               to={it.to}
@@ -82,7 +88,8 @@ export function AppLayout() {
             <DropdownTrigger asChild>
               <Button variant="ghost" className="w-full justify-start gap-2">
                 <UserRound className="h-4 w-4" />
-                <span className="truncate">{auth.user}</span>
+                <span className="truncate flex-1 text-left">{auth.user}</span>
+                {auth.role && <RoleBadge role={auth.role} />}
               </Button>
             </DropdownTrigger>
             <DropdownContent align="start" className="w-52">
@@ -115,7 +122,7 @@ export function AppLayout() {
               </Button>
             </DropdownTrigger>
             <DropdownContent align="end">
-              {navItems.map((it) => (
+              {visibleNav.map((it) => (
                 <DropdownItem key={it.to} onClick={() => nav(it.to)}>
                   <it.icon className="mr-2 h-4 w-4" />
                   {it.label}
@@ -146,6 +153,16 @@ export function AppLayout() {
         </div>
       </main>
     </div>
+  );
+}
+
+function RoleBadge({ role }: { role: "viewer" | "operator" | "admin" }) {
+  const variant =
+    role === "admin" ? "default" : role === "operator" ? "secondary" : "muted";
+  return (
+    <Badge variant={variant} className="ml-auto text-[10px] uppercase tracking-wider">
+      {role}
+    </Badge>
   );
 }
 
