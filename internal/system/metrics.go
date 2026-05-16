@@ -28,14 +28,14 @@ type Info struct {
 }
 
 type Metrics struct {
-	Time      time.Time      `json:"time"`
-	CPU       float64        `json:"cpu_pct"`
-	CPUPerCPU []float64      `json:"cpu_pct_per_cpu"`
-	Load      [3]float64     `json:"load"`
-	Mem       MemMetrics     `json:"mem"`
-	Swap      SwapMetrics    `json:"swap"`
-	Disks     []DiskMetrics  `json:"disks"`
-	Network   []NetMetrics   `json:"network"`
+	Time      time.Time     `json:"time"`
+	CPU       float64       `json:"cpu_pct"`
+	CPUPerCPU []float64     `json:"cpu_pct_per_cpu"`
+	Load      [3]float64    `json:"load"`
+	Mem       MemMetrics    `json:"mem"`
+	Swap      SwapMetrics   `json:"swap"`
+	Disks     []DiskMetrics `json:"disks"`
+	Network   []NetMetrics  `json:"network"`
 }
 
 type MemMetrics struct {

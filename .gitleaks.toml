@@ -1,0 +1,20 @@
+title = "webtermin gitleaks config"
+# Inherits the default ruleset and only overrides allowlists.
+
+[allowlist]
+description = "Globally-ignored paths and patterns for webtermin"
+
+paths = [
+    # Stub for embedded SPA; never contains code or secrets.
+    '''web/dist/\.gitkeep''',
+    # Lockfiles legitimately contain integrity hashes that look like secrets.
+    '''web/package-lock\.json''',
+    '''go\.sum''',
+]
+
+# Sample/example values used in tests of the timing-attack mitigation in
+# auth/service.go. These are intentionally fixed, public, and never used to
+# authenticate anyone.
+regexes = [
+    '''dummy-to-equalize-timing''',
+]

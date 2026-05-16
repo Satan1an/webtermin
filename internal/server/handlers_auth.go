@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/Satan1an/webtermin/internal/audit"
@@ -62,7 +63,10 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		})
 		switch {
 		case errors.Is(err, auth.ErrLockedOut):
-			writeJSONError(w, 429, err.Error())
+			// Surface the lockout window so well-behaved clients back off
+			// instead of hammering the endpoint.
+			w.Header().Set("Retry-After", strconv.Itoa(int(s.Cfg.Security.Lockout().Seconds())))
+			writeJSONError(w, http.StatusTooManyRequests, err.Error())
 		case errors.Is(err, auth.ErrTOTPRequired):
 			writeJSON(w, 401, map[string]string{"error": err.Error(), "code": "totp_required"})
 		default:

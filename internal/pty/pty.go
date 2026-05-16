@@ -2,16 +2,55 @@
 package pty
 
 import (
+	"bufio"
 	"errors"
 	"io"
 	"os"
 	"os/exec"
 	"os/user"
 	"strconv"
+	"strings"
 	"syscall"
 
 	"github.com/creack/pty"
 )
+
+// validShells is the in-process cache of /etc/shells; allowlisting the shell
+// path prevents a misconfigured (or tampered) config.yaml from launching an
+// arbitrary binary as the panel's PTY shell.
+var validShells = func() map[string]bool {
+	m := map[string]bool{}
+	f, err := os.Open("/etc/shells")
+	if err != nil {
+		return m
+	}
+	defer f.Close()
+	sc := bufio.NewScanner(f)
+	for sc.Scan() {
+		line := strings.TrimSpace(sc.Text())
+		if line != "" && !strings.HasPrefix(line, "#") {
+			m[line] = true
+		}
+	}
+	return m
+}()
+
+func isValidShell(path string) bool {
+	if !strings.HasPrefix(path, "/") || strings.Contains(path, "..") {
+		return false
+	}
+	// /etc/shells is the canonical allowlist on POSIX systems; fall back to
+	// hardcoded common shells if /etc/shells couldn't be read (very minimal
+	// container images sometimes lack it).
+	if len(validShells) > 0 {
+		return validShells[path]
+	}
+	switch path {
+	case "/bin/sh", "/bin/bash", "/bin/dash", "/usr/bin/bash", "/usr/bin/zsh", "/bin/zsh":
+		return true
+	}
+	return false
+}
 
 type Session struct {
 	cmd *exec.Cmd
@@ -69,11 +108,15 @@ func Start(username, defaultShell string, rows, cols uint16) (*Session, error) {
 			shell = "/bin/bash"
 		}
 	}
+	if !isValidShell(shell) {
+		return nil, errors.New("shell not in /etc/shells allowlist: " + shell)
+	}
 	if _, err := os.Stat(shell); err != nil {
 		return nil, errors.New("shell not found: " + shell)
 	}
 
-	cmd := exec.Command(shell, "-l")
+	cmd := exec.Command(shell, "-l") //nosec G204 -- shell is allowlisted via /etc/shells above
+
 	cmd.Env = append(os.Environ(),
 		"TERM=xterm-256color",
 		"LANG=C.UTF-8",

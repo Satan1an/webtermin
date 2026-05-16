@@ -104,6 +104,14 @@ After editing: `sudo systemctl restart webtermin`.
 - **Audit** — every mutating action writes to `audit_log` (user, IP, action, target, outcome, detail). Surfaced under `/audit` in the UI.
 - **Process** — runs as root (required to manage system users/services/files). systemd unit hardening: `ProtectKernelTunables=true`, `ProtectKernelModules=true`.
 
+### Audit
+
+A manual review + `govulncheck` sweep was performed before tagging v0.1.0
+(2026-05-16): grep audit of `exec.Command` argv usage, SQL parameterization,
+file modes, cookie attributes; deep review of auth, CSRF, WebSocket origin,
+path safety, and command exec. Results and the by-design trade-offs are
+documented in [SECURITY.md](SECURITY.md#pre-release-audit-v010-2026-05-16).
+
 Found a vulnerability? See [SECURITY.md](SECURITY.md).
 
 ## Roadmap

@@ -6,19 +6,21 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/gorilla/websocket"
 	"github.com/Satan1an/webtermin/internal/audit"
 	"github.com/Satan1an/webtermin/internal/auth"
 	"github.com/Satan1an/webtermin/internal/pty"
+	"github.com/gorilla/websocket"
 )
 
 // Client → server protocol (text frames as JSON):
-//   {"type":"data","data":"..."}      // keystrokes
-//   {"type":"resize","rows":24,"cols":80}
+//
+//	{"type":"data","data":"..."}      // keystrokes
+//	{"type":"resize","rows":24,"cols":80}
 //
 // Server → client (binary or text):
-//   binary frames: raw PTY output (UTF-8)
-//   text frames:   JSON {"type":"closed","detail":"..."} on EOF
+//
+//	binary frames: raw PTY output (UTF-8)
+//	text frames:   JSON {"type":"closed","detail":"..."} on EOF
 type wsClientMsg struct {
 	Type string `json:"type"`
 	Data string `json:"data,omitempty"`

@@ -1,7 +1,8 @@
 // Package files implements filesystem operations with explicit path safety:
 // every input path is cleaned, made absolute, and rejected if it traverses
 // outside an allowed root (default: the whole FS for admins, but caller may
-// constrain). Symlinks are followed via filepath.EvalSymlinks before any op.
+// constrain). Symlinks are not resolved — file operations follow whatever the
+// kernel does, which is the same surface a shell user gets.
 package files
 
 import (

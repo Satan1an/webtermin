@@ -1,6 +1,6 @@
 module github.com/Satan1an/webtermin
 
-go 1.25.0
+go 1.25.10
 
 require (
 	github.com/coreos/go-systemd/v22 v22.7.0

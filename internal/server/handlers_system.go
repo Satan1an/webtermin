@@ -4,16 +4,20 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/gorilla/websocket"
 	"github.com/Satan1an/webtermin/internal/system"
+	"github.com/gorilla/websocket"
 )
 
 var upgrader = websocket.Upgrader{
-	// Same-origin only — CSP frame-ancestors already prevents framing, this is belt + braces.
+	// Same-origin only. The session cookie is SameSite=Strict so a cross-site
+	// upgrade attempt from a browser wouldn't even carry credentials, but we
+	// still hard-fail any non-matching Origin (and treat missing Origin —
+	// typical of non-browser clients that can't carry our cookie either — as
+	// not-allowed to keep the WebSocket surface browser-only).
 	CheckOrigin: func(r *http.Request) bool {
 		origin := r.Header.Get("Origin")
 		if origin == "" {
-			return true
+			return false
 		}
 		return originMatchesHost(origin, r.Host)
 	},

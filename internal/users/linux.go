@@ -20,13 +20,13 @@ import (
 )
 
 type User struct {
-	Name    string `json:"name"`
-	UID     int    `json:"uid"`
-	GID     int    `json:"gid"`
-	Gecos   string `json:"gecos"`
-	Home    string `json:"home"`
-	Shell   string `json:"shell"`
-	IsSystem bool  `json:"is_system"`
+	Name     string `json:"name"`
+	UID      int    `json:"uid"`
+	GID      int    `json:"gid"`
+	Gecos    string `json:"gecos"`
+	Home     string `json:"home"`
+	Shell    string `json:"shell"`
+	IsSystem bool   `json:"is_system"`
 }
 
 var nameRe = regexp.MustCompile(`^[a-z_][a-z0-9_-]{0,31}$`)
@@ -67,10 +67,10 @@ func List(includeSystem bool) ([]User, error) {
 }
 
 type CreateOpts struct {
-	Name  string
-	Gecos string
-	Shell string
-	Home  string // empty = default /home/<name>
+	Name   string
+	Gecos  string
+	Shell  string
+	Home   string // empty = default /home/<name>
 	System bool
 }
 

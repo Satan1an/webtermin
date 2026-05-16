@@ -19,12 +19,12 @@ import (
 )
 
 type Server struct {
-	Cfg    *config.Config
-	Store  *store.Store
-	Auth   *auth.Service
-	Audit  *audit.Logger
-	Log    *slog.Logger
-	WebFS  fs.FS // built React app, or nil for dev
+	Cfg     *config.Config
+	Store   *store.Store
+	Auth    *auth.Service
+	Audit   *audit.Logger
+	Log     *slog.Logger
+	WebFS   fs.FS // built React app, or nil for dev
 	HTTPSrv *http.Server
 }
 
