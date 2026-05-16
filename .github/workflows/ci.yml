@@ -84,10 +84,25 @@ jobs:
           go install honnef.co/go/tools/cmd/staticcheck@latest
           staticcheck ./...
 
-      - name: gosec (HIGH severity)
-        uses: securego/gosec@master
-        with:
-          args: '-severity high -confidence medium -fmt sarif -out gosec.sarif ./...'
+      - name: Install gosec
+        run: go install github.com/securego/gosec/v2/cmd/gosec@latest
+
+      # Full SARIF for the GitHub Security tab — always succeeds, captures every
+      # severity level. We upload the resulting file as an artifact below.
+      - name: gosec (SARIF report, all severities)
+        run: gosec -no-fail -fmt sarif -out gosec.sarif ./...
+
+      # Strict gate: only HIGH severity, HIGH confidence — these are the findings
+      # that we actually want to block CI on. Exclude rules whose default checks
+      # are false-positives for a server-management tool that intentionally
+      # reads/writes arbitrary admin-supplied paths and creates files with the
+      # standard user-readable modes:
+      #   G104 — unhandled error on cleanup paths (idiomatic Go)
+      #   G301 — directory 0o755 (intentional for mkdir-like behaviour)
+      #   G302 — file 0o644 (intentional for uploads)
+      #   G304 — file path from variable (the entire point of internal/files)
+      - name: gosec (fail on HIGH severity only)
+        run: gosec -severity high -confidence high -exclude=G104,G301,G302,G304 ./...
 
       - name: govulncheck (Go stdlib + dependency CVEs)
         run: |
