@@ -7,6 +7,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] — 2026-05-17
+
+### Added — distribution
+
+- `.rpm` and `.apk` packages alongside `.deb` — webtermin now installs
+  cleanly on Fedora/RHEL/Alma and Alpine in addition to Debian/Ubuntu.
+- Multi-arch container image published to `ghcr.io/satan1an/webtermin`
+  (`latest` + `v<version>` tags, `linux/amd64` + `linux/arm64`).
+- Release workflow logs into ghcr.io via the built-in `GITHUB_TOKEN` and
+  uses `docker buildx` so cross-arch images come straight from the same
+  CI run as the `.deb`/`.rpm`/`.apk` artefacts.
+
+### Added — Backup module
+
+- `/backup` page (admin-only) — create on-demand tar.gz snapshots of
+  `/etc/webtermin`, `/var/lib/webtermin`, and any extra absolute paths
+  you list. Download via signed `?` link, delete to free disk.
+- Backups land in `${data_dir}/backups/` with names like
+  `pre-upgrade-20260517-090530.tar.gz`. Restore is just
+  `sudo tar xzf <file> -C /` from any shell.
+- Backend (`internal/backup`) with path-safety validators (no traversal,
+  no globs, no relative paths, no `/`). Sockets, devices, FIFOs are
+  skipped — they're not meaningful on restore anyway.
+- 5 unit tests covering the validators and a round-trip create-then-read.
+
+### Added — non-root mode
+
+- `packaging/sudoers.webtermin` template — drop into `/etc/sudoers.d/`,
+  switch the systemd unit to `User=webtermin`, and the panel runs without
+  root. Comments mark which capabilities are optional vs required.
+- Comments in `packaging/webtermin.service` explain the trade-off and
+  point at SECURITY.md for the full discussion.
+- `.deb`/`.rpm`/`.apk` packages now ship the sudoers template at
+  `/usr/share/doc/webtermin/sudoers.webtermin` so it's discoverable.
+
+### Added — Docker image build
+
+- `POST /api/docker/images/build` (operator) — multipart upload of a
+  Dockerfile, builds it via the engine's `/build` endpoint, streams the
+  layer-by-layer progress over WebSocket. Audited as
+  `docker.image.build`.
+- `internal/docker/build.go` adds `Client.Build(ctx, tarball, tag,
+  dockerfile)`. Multi-file build contexts (with COPY of supporting
+  files) are accepted by passing a pre-built tarball — the multipart
+  endpoint currently wraps a single-file Dockerfile, the API supports
+  the full case.
+
 ## [0.6.0] — 2026-05-17
 
 ### Added — Docker Compose stacks
@@ -310,7 +357,8 @@ without leaving the page.
 - `.deb` packaging for `linux/amd64` and `linux/arm64` via GoReleaser + nfpm.
 - GitHub Actions: CI on PR/push (build + cross-build + go vet) and Release on tag (full GoReleaser flow).
 
-[Unreleased]: https://github.com/Satan1an/webtermin/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/Satan1an/webtermin/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/Satan1an/webtermin/releases/tag/v0.7.0
 [0.6.0]: https://github.com/Satan1an/webtermin/releases/tag/v0.6.0
 [0.5.0]: https://github.com/Satan1an/webtermin/releases/tag/v0.5.0
 [0.4.0]: https://github.com/Satan1an/webtermin/releases/tag/v0.4.0

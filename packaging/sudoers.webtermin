@@ -1,0 +1,43 @@
+# /etc/sudoers.d/webtermin — drop-in sudoers entries that let the `webtermin`
+# system user perform exactly the privileged actions the panel needs.
+#
+# This file is part of "non-root mode" — see SECURITY.md for the trade-offs.
+# Install with `visudo -f /etc/sudoers.d/webtermin` so syntax errors are caught.
+#
+# After installing, switch the systemd unit to `User=webtermin` and restart.
+#
+# NOTE: every entry uses NOPASSWD because the panel is already authenticated
+# by its own auth layer — a second password prompt the user can't see would
+# just hang the request.
+
+# systemd unit control — every action the systemd module performs.
+webtermin ALL=(root) NOPASSWD: /bin/systemctl, /usr/bin/systemctl
+webtermin ALL=(root) NOPASSWD: /bin/journalctl, /usr/bin/journalctl
+
+# Linux user management.
+webtermin ALL=(root) NOPASSWD: /usr/sbin/useradd
+webtermin ALL=(root) NOPASSWD: /usr/sbin/userdel
+webtermin ALL=(root) NOPASSWD: /usr/sbin/usermod
+webtermin ALL=(root) NOPASSWD: /usr/sbin/chpasswd
+
+# Firewall (ufw).
+webtermin ALL=(root) NOPASSWD: /usr/sbin/ufw
+
+# File manager: chmod and chown on arbitrary host paths. This is the biggest
+# capability the panel needs — admins should consider whether the file-manager
+# module is worth granting on a non-root deployment. Comment out to disable.
+webtermin ALL=(root) NOPASSWD: /bin/chmod, /usr/bin/chmod
+webtermin ALL=(root) NOPASSWD: /bin/chown, /usr/bin/chown
+
+# Cron management — `crontab` is setuid-root in most distros but `-u <user>`
+# only works as root or via sudo.
+webtermin ALL=(root) NOPASSWD: /usr/bin/crontab
+
+# Package management (apt / dnf). Optional — comment out if the host shouldn't
+# accept package installs from the panel.
+# webtermin ALL=(root) NOPASSWD: /usr/bin/apt-get
+# webtermin ALL=(root) NOPASSWD: /usr/bin/dnf
+
+# Docker: not listed here on purpose — add the `webtermin` user to the
+# `docker` group instead so it can talk to the Unix socket without sudo:
+#   sudo usermod -aG docker webtermin

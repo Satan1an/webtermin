@@ -101,6 +101,17 @@ CREATE TABLE IF NOT EXISTS stacks (
     created_at  INTEGER NOT NULL,
     updated_at  INTEGER NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS backups (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    name         TEXT NOT NULL,
+    path         TEXT NOT NULL,
+    size_bytes   INTEGER NOT NULL DEFAULT 0,
+    paths        TEXT NOT NULL DEFAULT '',
+    created_at   INTEGER NOT NULL,
+    created_by   INTEGER REFERENCES users(id) ON DELETE SET NULL
+);
+CREATE INDEX IF NOT EXISTS idx_backups_created ON backups(created_at);
 `
 
 func (s *Store) migrate() error {

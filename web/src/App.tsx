@@ -17,6 +17,7 @@ import { CronPage } from "@/pages/CronPage";
 import { FirewallPage } from "@/pages/FirewallPage";
 import { DockerPage } from "@/pages/DockerPage";
 import { StacksPage } from "@/pages/StacksPage";
+import { BackupPage } from "@/pages/BackupPage";
 import { Toaster } from "@/components/ui/toast";
 import { motion } from "framer-motion";
 
@@ -69,6 +70,7 @@ export default function App() {
             <Route path="/firewall" element={<FirewallPage />} />
             <Route path="/stacks" element={<StacksPage />} />
             <Route path="/docker" element={<DockerPage />} />
+            <Route path="/backup" element={<BackupPage />} />
             <Route path="*" element={<NavigateAfterLogin />} />
           </Route>
         ) : (

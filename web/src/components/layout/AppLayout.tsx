@@ -2,6 +2,7 @@ import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Activity,
+  Archive,
   Boxes,
   CircuitBoard,
   Clock,
@@ -43,6 +44,7 @@ const navItems = [
   { to: "/terminal", label: "Terminal", icon: TerminalSquare, adminOnly: false },
   { to: "/api-tokens", label: "API tokens", icon: KeyRound, adminOnly: false },
   { to: "/firewall", label: "Firewall", icon: ShieldCheck, adminOnly: true },
+  { to: "/backup", label: "Backup", icon: Archive, adminOnly: true },
   { to: "/panel-users", label: "Panel users", icon: Shield, adminOnly: true },
   { to: "/audit", label: "Audit log", icon: ScrollText, adminOnly: true },
 ];

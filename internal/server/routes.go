@@ -105,6 +105,7 @@ func (s *Server) routes() http.Handler {
 	authed.HandleFunc("GET /api/docker/containers/{id}/exec/ws", s.protected(auth.RoleOperator, s.handleDockerExecWS))
 
 	authed.HandleFunc("GET /api/docker/images/pull", s.protected(auth.RoleOperator, s.handleDockerImagePull))
+	authed.HandleFunc("POST /api/docker/images/build", s.protected(auth.RoleOperator, s.handleDockerImageBuild))
 	authed.HandleFunc("DELETE /api/docker/images/{ref}", s.protected(auth.RoleOperator, s.handleDockerImageRemove))
 
 	authed.HandleFunc("GET /api/docker/networks", s.handleDockerNetworksList)
@@ -129,6 +130,13 @@ func (s *Server) routes() http.Handler {
 	authed.HandleFunc("POST /api/stacks/{id}/start", s.protected(auth.RoleOperator, s.handleStackStart))
 	authed.HandleFunc("POST /api/stacks/{id}/stop", s.protected(auth.RoleOperator, s.handleStackStop))
 	authed.HandleFunc("DELETE /api/stacks/{id}", s.protected(auth.RoleOperator, s.handleStackDelete))
+
+	// Backups — list/download is operator+, create/delete is admin (the
+	// archive itself contains the panel's whole state).
+	authed.HandleFunc("GET /api/backups", s.protected(auth.RoleOperator, s.handleBackupsList))
+	authed.HandleFunc("POST /api/backups", s.protected(auth.RoleAdmin, s.handleBackupCreate))
+	authed.HandleFunc("GET /api/backups/{id}/download", s.protected(auth.RoleOperator, s.handleBackupDownload))
+	authed.HandleFunc("DELETE /api/backups/{id}", s.protected(auth.RoleAdmin, s.handleBackupDelete))
 
 	mux.Handle("/api/auth/logout", s.requireAuth(s.requireCSRF(authed)))
 	mux.Handle("/api/", s.requireAuth(s.requireCSRF(authed)))

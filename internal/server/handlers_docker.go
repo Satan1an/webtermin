@@ -1,6 +1,7 @@
 package server
 
 import (
+	"archive/tar"
 	"bufio"
 	"encoding/json"
 	"errors"
@@ -394,6 +395,83 @@ func (s *Server) handleDockerImagePull(w http.ResponseWriter, r *http.Request) {
 	defer rd.Close()
 
 	dec := json.NewDecoder(rd)
+	for {
+		var ev map[string]any
+		if err := dec.Decode(&ev); err != nil {
+			if err == io.EOF {
+				_ = conn.WriteJSON(map[string]string{"type": "done"})
+			}
+			return
+		}
+		if err := conn.WriteJSON(ev); err != nil {
+			return
+		}
+	}
+}
+
+// handleDockerImageBuild accepts a Dockerfile via multipart upload, packages
+// it into a single-file tar context, and streams the engine's build events
+// over WebSocket. Multi-file build contexts (with COPY of other files)
+// would need a client-side tarball upload — supported by passing
+// `tar.tar.gz` instead of `dockerfile`, but we keep the simple shape for v0.7.
+func (s *Server) handleDockerImageBuild(w http.ResponseWriter, r *http.Request) {
+	c, err := docker.New()
+	if err != nil {
+		writeJSONError(w, http.StatusServiceUnavailable, "docker is not available")
+		return
+	}
+	if err := r.ParseMultipartForm(8 << 20); err != nil {
+		writeJSONError(w, 400, err.Error())
+		return
+	}
+	tag := r.FormValue("tag")
+	dockerfile, _, err := r.FormFile("dockerfile")
+	if err != nil {
+		writeJSONError(w, 400, "missing dockerfile")
+		return
+	}
+	defer dockerfile.Close()
+
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		return
+	}
+	defer conn.Close()
+
+	contents, err := io.ReadAll(io.LimitReader(dockerfile, 1<<20))
+	if err != nil {
+		_ = conn.WriteJSON(map[string]string{"error": err.Error()})
+		return
+	}
+	pr, pw := io.Pipe()
+	go func() {
+		defer pw.Close()
+		tw := tar.NewWriter(pw)
+		_ = tw.WriteHeader(&tar.Header{
+			Name: "Dockerfile",
+			Mode: 0o644,
+			Size: int64(len(contents)),
+		})
+		_, _ = tw.Write(contents)
+		_ = tw.Close()
+	}()
+
+	stream, err := c.Build(r.Context(), pr, tag, "Dockerfile")
+	if err != nil {
+		_ = conn.WriteJSON(map[string]string{"error": err.Error()})
+		return
+	}
+	defer stream.Close()
+
+	u := UserFrom(r)
+	uid := u.ID
+	s.Audit.Write(audit.Event{
+		UserID: &uid, Username: u.Username, IP: auth.ClientIP(r),
+		Action: "docker.image.build", Target: tag,
+		Outcome: audit.OutcomeOK, Detail: "dockerfile-only context",
+	})
+
+	dec := json.NewDecoder(stream)
 	for {
 		var ev map[string]any
 		if err := dec.Decode(&ev); err != nil {

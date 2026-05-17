@@ -1,0 +1,20 @@
+# goreleaser feeds the already-cross-compiled binary in via the build context,
+# so this Dockerfile only assembles the runtime image — no Go or Node here.
+FROM debian:bookworm-slim
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        systemd \
+        passwd \
+        ca-certificates \
+        tzdata \
+    && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
+
+WORKDIR /app
+# goreleaser drops the binary at the build-context root by default.
+COPY webtermin /usr/bin/webtermin
+COPY config.example.yaml /app/config.example.yaml
+
+VOLUME ["/app/data"]
+EXPOSE 8443
+
+ENTRYPOINT ["/usr/bin/webtermin"]
+CMD ["-config", "/app/config.yaml"]

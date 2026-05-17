@@ -7,7 +7,12 @@ Wants=network-online.target
 [Service]
 Type=simple
 ExecStart=/usr/bin/webtermin -config /etc/webtermin/config.yaml
-# webtermin must run as root to manage system users, services, and files.
+# Default: run as root because most actions (systemctl / useradd / chpasswd /
+# arbitrary file writes) need it. To run as an unprivileged user instead, drop
+# packaging/sudoers.webtermin into /etc/sudoers.d/, create the `webtermin`
+# system user, override these two lines (e.g. via `systemctl edit webtermin`)
+# to `User=webtermin` / `Group=webtermin`, and add the user to the `docker`
+# group if you use the Docker module. See SECURITY.md for the full trade-off.
 User=root
 Group=root
 Restart=on-failure
