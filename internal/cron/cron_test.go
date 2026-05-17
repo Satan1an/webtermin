@@ -22,11 +22,11 @@ func TestValidSchedule(t *testing.T) {
 	bad := []string{
 		"",
 		" ",
-		"* * * *",        // only 4 fields
-		"* * * * * *",    // 6 fields
-		"@every-minute",  // unknown alias
+		"* * * *",            // only 4 fields
+		"* * * * * *",        // 6 fields
+		"@every-minute",      // unknown alias
 		"0 3 * * * rm -rf /", // schedule plus command in one
-		"0 3 * * mon",    // named DOW — we don't accept names
+		"0 3 * * mon",        // named DOW — we don't accept names
 		"$()@daily",
 		"@reboot; rm",
 	}

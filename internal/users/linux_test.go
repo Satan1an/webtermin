@@ -13,18 +13,18 @@ func TestValidName(t *testing.T) {
 		}
 	}
 	bad := []string{
-		"",                       // empty
-		"1bob",                   // starts with digit
-		"-bob",                   // starts with dash
-		"Bob",                    // uppercase
-		"bob bob",                // space
-		"bob;rm",                 // shell metachars
-		"bob$",                   // dollar
-		"bob\nrm",                // newline
-		"bob/etc",                // slash
-		strings.Repeat("a", 33),  // too long (max 32)
-		"../../etc",              // traversal
-		"root\x00admin",          // null byte
+		"",                      // empty
+		"1bob",                  // starts with digit
+		"-bob",                  // starts with dash
+		"Bob",                   // uppercase
+		"bob bob",               // space
+		"bob;rm",                // shell metachars
+		"bob$",                  // dollar
+		"bob\nrm",               // newline
+		"bob/etc",               // slash
+		strings.Repeat("a", 33), // too long (max 32)
+		"../../etc",             // traversal
+		"root\x00admin",         // null byte
 	}
 	for _, n := range bad {
 		if ValidName(n) {
@@ -58,9 +58,9 @@ func TestParseKeyLine_RejectsGarbage(t *testing.T) {
 	bad := []string{
 		"",
 		"   ",
-		"ssh-rsa",                  // missing blob
-		"not-base64",               // single token
-		"ssh-rsa !!!notb64!!! me",  // invalid base64
+		"ssh-rsa",                 // missing blob
+		"not-base64",              // single token
+		"ssh-rsa !!!notb64!!! me", // invalid base64
 	}
 	for _, line := range bad {
 		if _, ok := parseKeyLine(line); ok {

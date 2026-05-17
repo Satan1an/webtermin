@@ -60,9 +60,9 @@ func TestSafePath_EnforcesRoot(t *testing.T) {
 		}
 	}
 	bad := []string{
-		"/srv/data2",       // sibling that starts with same prefix
+		"/srv/data2", // sibling that starts with same prefix
 		"/etc/passwd",
-		"/srv",             // parent
+		"/srv",                // parent
 		"/srv/data/../passwd", // gets cleaned to /srv/passwd
 	}
 	for _, p := range bad {

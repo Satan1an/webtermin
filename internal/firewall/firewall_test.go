@@ -23,15 +23,15 @@ func TestValidSpec(t *testing.T) {
 		"   ",
 		"22; rm -rf /",
 		"22 && shutdown",
-		"allow ssh",         // contains the action — caller should pass spec only
+		"allow ssh", // contains the action — caller should pass spec only
 		"$(reboot)",
 		"`reboot`",
-		"22/sctp",           // unsupported proto
+		"22/sctp", // unsupported proto
 		"22/tcp/extra",
 		"ssh!",
-		"SSH",               // case-sensitive service name
-		"from 10.0.0.0/33",  // we don't validate mask range but regex still must accept; this *is* still regex-accepted but ufw will fail. We're OK with that.
-		"to 10.0.0.0/24",    // can't start with "to" — needs "from" first
+		"SSH",              // case-sensitive service name
+		"from 10.0.0.0/33", // we don't validate mask range but regex still must accept; this *is* still regex-accepted but ufw will fail. We're OK with that.
+		"to 10.0.0.0/24",   // can't start with "to" — needs "from" first
 		"from |whoami|",
 	}
 	for _, s := range bad {

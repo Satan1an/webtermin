@@ -35,4 +35,3 @@ func TestValidateTOTP_RejectsEmptySecret(t *testing.T) {
 		t.Fatal("validation succeeded with empty secret — must always fail")
 	}
 }
-

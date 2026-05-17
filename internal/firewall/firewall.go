@@ -21,13 +21,13 @@ var ErrNotAvailable = errors.New("ufw not installed on this host")
 
 // Status mirrors what we expose to the frontend.
 type Status struct {
-	Available    bool   `json:"available"`
-	Active       bool   `json:"active"`
-	DefaultIn    string `json:"default_in"`
-	DefaultOut   string `json:"default_out"`
-	DefaultFwd   string `json:"default_fwd"`
-	Logging      string `json:"logging"`
-	Rules        []Rule `json:"rules"`
+	Available  bool   `json:"available"`
+	Active     bool   `json:"active"`
+	DefaultIn  string `json:"default_in"`
+	DefaultOut string `json:"default_out"`
+	DefaultFwd string `json:"default_fwd"`
+	Logging    string `json:"logging"`
+	Rules      []Rule `json:"rules"`
 }
 
 type Rule struct {
@@ -65,9 +65,9 @@ func GetStatus() (*Status, error) {
 }
 
 var (
-	statusLineRe  = regexp.MustCompile(`^Status:\s+(\S+)`)
+	statusLineRe   = regexp.MustCompile(`^Status:\s+(\S+)`)
 	defaultsLineRe = regexp.MustCompile(`^Default:\s+(.*)$`)
-	loggingLineRe = regexp.MustCompile(`^Logging:\s+(\S+)`)
+	loggingLineRe  = regexp.MustCompile(`^Logging:\s+(\S+)`)
 	// "[ 1] 22/tcp                     ALLOW IN    Anywhere"
 	ruleLineRe = regexp.MustCompile(`^\[\s*(\d+)\]\s+(.+?)\s{2,}(ALLOW|DENY|REJECT|LIMIT)\s+(IN|OUT)\s+(.+)$`)
 )
@@ -133,7 +133,7 @@ func parseRules(out string) []Rule {
 //   - port ranges:      "8000:8010/tcp"
 //   - named services:   "ssh", "http", "https" (must be all-lowercase a–z)
 //   - cidr-from rules:  "from 10.0.0.0/8"
-//                       "from 10.0.0.0/8 to any port 22 proto tcp"
+//     "from 10.0.0.0/8 to any port 22 proto tcp"
 //
 // Anything outside this is rejected — no command injection surface, no need
 // to escape, because we don't accept shell metacharacters at all.

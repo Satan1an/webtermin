@@ -11,7 +11,7 @@ func TestValidUnitName(t *testing.T) {
 		"nginx.service",
 		"systemd-resolved.service",
 		"webtermin.service",
-		"getty@tty1.service",                  // template instance
+		"getty@tty1.service", // template instance
 		"dbus.socket",
 		"daily-backup.timer",
 		"multi-user.target",
@@ -27,16 +27,16 @@ func TestValidUnitName(t *testing.T) {
 	}
 
 	bad := []string{
-		"",                              // empty
-		"sshd",                          // no suffix
-		"sshd.unknown",                  // bad suffix
-		"sshd.service ; rm -rf /",       // shell metachars
-		"foo bar.service",               // space
-		"/etc/passwd",                   // path
-		"../sshd.service",               // traversal
-		"foo`reboot`.service",           // backticks
-		"foo$(whoami).service",          // command substitution
-		"sshd.service\nnginx.service",   // newline
+		"",                                    // empty
+		"sshd",                                // no suffix
+		"sshd.unknown",                        // bad suffix
+		"sshd.service ; rm -rf /",             // shell metachars
+		"foo bar.service",                     // space
+		"/etc/passwd",                         // path
+		"../sshd.service",                     // traversal
+		"foo`reboot`.service",                 // backticks
+		"foo$(whoami).service",                // command substitution
+		"sshd.service\nnginx.service",         // newline
 		strings.Repeat("a", 201) + ".service", // oversize
 	}
 	for _, n := range bad {

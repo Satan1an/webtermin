@@ -25,7 +25,7 @@ type panelUserOut struct {
 func toPanelUser(u *store.User) panelUserOut {
 	return panelUserOut{
 		ID: u.ID, Username: u.Username, Role: u.Role,
-		Has2FA: u.TOTPSecret != "",
+		Has2FA:    u.TOTPSecret != "",
 		CreatedAt: u.CreatedAt, UpdatedAt: u.UpdatedAt,
 	}
 }

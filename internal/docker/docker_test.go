@@ -7,8 +7,8 @@ import (
 
 func TestValidContainerID(t *testing.T) {
 	good := []string{
-		"0123456789ab",                       // exactly 12
-		"0123456789abcdef0123456789abcdef",   // 32
+		"0123456789ab",                     // exactly 12
+		"0123456789abcdef0123456789abcdef", // 32
 		strings.Repeat("a", 64),
 	}
 	for _, id := range good {
@@ -18,9 +18,9 @@ func TestValidContainerID(t *testing.T) {
 	}
 	bad := []string{
 		"",
-		"0123456789",        // 10 chars — too short
-		"0123456789AB",      // uppercase hex
-		"0123456789ab!",     // metachar
+		"0123456789",            // 10 chars — too short
+		"0123456789AB",          // uppercase hex
+		"0123456789ab!",         // metachar
 		strings.Repeat("a", 65), // too long
 		"nginx",
 		"0123 4567 89ab",
