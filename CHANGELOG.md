@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.1] — 2026-05-17
+
+### Fixed
+
+- Release pipeline now ships the Docker image. v0.9.0's release run
+  failed at the docker-build stage because `config.example.yaml` wasn't
+  in the goreleaser-prepared build context; the `.deb`/`.rpm`/`.apk`
+  packages were built but never uploaded since the workflow exited.
+- Added `extra_files: [config.example.yaml]` to both docker stanzas
+  so the file is staged into goreleaser's tmp build dir alongside the
+  binary.
+
+No application-level changes — v0.9.0 + v0.9.1 are functionally
+identical, v0.9.1 just gets through the release pipeline cleanly.
+
 ## [0.9.0] — 2026-05-17
 
 ### Added — Network module (`/network`, admin-only)
@@ -456,7 +471,8 @@ without leaving the page.
 - `.deb` packaging for `linux/amd64` and `linux/arm64` via GoReleaser + nfpm.
 - GitHub Actions: CI on PR/push (build + cross-build + go vet) and Release on tag (full GoReleaser flow).
 
-[Unreleased]: https://github.com/Satan1an/webtermin/compare/v0.9.0...HEAD
+[Unreleased]: https://github.com/Satan1an/webtermin/compare/v0.9.1...HEAD
+[0.9.1]: https://github.com/Satan1an/webtermin/releases/tag/v0.9.1
 [0.9.0]: https://github.com/Satan1an/webtermin/releases/tag/v0.9.0
 [0.8.0]: https://github.com/Satan1an/webtermin/releases/tag/v0.8.0
 [0.7.0]: https://github.com/Satan1an/webtermin/releases/tag/v0.7.0
