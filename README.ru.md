@@ -22,12 +22,13 @@
 
 | | |
 |---|---|
-| ⚡ **Один бинарник** | Статический Go-исполняемый файл (~13 МБ) с встроенной React-SPA через `go:embed`. Без runtime, без отдельного веб-сервера для статики. |
-| 🔐 **Безопасность в основе** | TLS по умолчанию (self-signed автогенерация или ваши PEM) · Argon2id · HttpOnly/Secure/Strict cookies · CSRF-токены · строгий CSP · rate-limit + lockout · опциональная TOTP 2FA. |
+| ⚡ **Один бинарник** | Статический Go-исполняемый файл (~14 МБ) с встроенной React-SPA через `go:embed`. Без runtime, без отдельного веб-сервера для статики. Один и тот же бинарник в `.deb` / `.rpm` / `.apk` / Docker. |
+| 🔐 **Безопасность в основе** | TLS по умолчанию · Argon2id · HttpOnly/Secure/Strict cookies · CSRF-токены · строгий CSP · rate-limit + lockout · опциональная TOTP 2FA · RBAC (viewer / operator / admin) · API-токены со scope'ами · OIDC SSO. |
 | 📜 **Аудит-лог** | Каждое изменяющее действие записывается в SQLite — кто, что, когда, цель, результат, IP. Доступен в UI на странице `/audit`. |
-| 🧩 **Модули** | Дашборд · systemd-сервисы · Linux-пользователи + SSH-ключи · файловый менеджер с редактором Monaco · веб-терминал. |
+| 🧩 **13 модулей** | См. [docs/modules.md](docs/modules.md). Systemd · Docker (Portainer-grade) · Compose stacks · cron · Linux-пользователи + SSH-ключи · файлы (Monaco) · PTY-терминал · пакеты (apt/dnf) · firewall (ufw) · сеть (nmcli) · WireGuard · бэкапы · юзеры и токены панели. |
 | 🎨 **Современный UI** | React + Tailwind + shadcn/Radix · recharts · Framer Motion · тёмная тема по умолчанию · адаптивный. |
 | 🏗️ **ARM-ready** | Кросс-компиляция под `linux/amd64` и `linux/arm64` (OrangePi, Raspberry Pi 4/5, ARM cloud VMs). |
+| 📚 **Документировано** | Per-module reference, полный API, OIDC + non-root walkthrough'и, гайд для контрибьюторов — всё в [`docs/`](docs/). |
 
 ## Скриншоты
 
@@ -103,17 +104,29 @@ make docker-arm64  # arm64 Docker-образ через buildx
 
 После правки: `sudo systemctl restart webtermin`.
 
+## Документация
+
+| | |
+|---|---|
+| **Справочник модулей** — [`docs/modules.md`](docs/modules.md) | Все модули: что делают, кто что может, namespace'ы в audit-логе. |
+| **HTTP API** — [`docs/api.md`](docs/api.md) | Полный список endpoint'ов по модулям. Незаменимо если автоматизируешь через API-токены. |
+| **Настройка OIDC SSO** — [`docs/oidc-setup.md`](docs/oidc-setup.md) | Конкретный walkthrough на примере Authentik. |
+| **Запуск без root** — [`docs/non-root-setup.md`](docs/non-root-setup.md) | Рецепт через sudoers + docker-группу для least-privilege деплоя. |
+| **Контрибьюторам** — [`docs/contributing.md`](docs/contributing.md) | Раскладка репо, build/test/lint, паттерн добавления нового модуля. |
+
 ## Модель безопасности
 
 - **Транспорт** — только HTTPS, TLS 1.2+, HSTS 2 года, X-Frame-Options DENY, строгий Content-Security-Policy.
-- **Аутентификация** — Argon2id (64 МиБ, t=2, p=2). Session ID 256-битный, случайный, в HttpOnly + Secure + SameSite=Strict cookie. CSRF-токен обязателен на каждом изменяющем запросе. Опциональная TOTP 2FA на пользователя. Rate-limit + lockout при неудачных входах.
-- **Системные действия** — каждое действие живёт за типизированным allowlist'ом. Имена юнитов сверяются с `^[A-Za-z0-9@_.\-:\\]+\.(service|socket|...)$`, имена пользователей — с `^[a-z_][a-z0-9_-]{0,31}$`, пути файлов должны быть абсолютными, очищенными, без `..`. **Никаких shell-строк, собранных из пользовательского ввода** — `useradd`, `chpasswd`, `journalctl` и т.п. вызываются через argv-слайс в `os/exec`.
+- **Аутентификация** — Argon2id (64 МиБ, t=2, p=2). Session ID 256-битный, случайный, в HttpOnly + Secure + SameSite=Strict cookie. CSRF-токен обязателен на каждом изменяющем запросе. Опциональная TOTP 2FA на пользователя. Rate-limit + lockout при неудачных входах. RBAC с тремя иерархическими ролями. API-токены со scope'ами фиксируемыми на момент выпуска. Опциональный OIDC SSO.
+- **Системные действия** — каждое действие живёт за типизированным allowlist'ом. Имена юнитов сверяются с `^[A-Za-z0-9@_.\-:\\]+\.(service|socket|...)$`, имена пользователей — с `^[a-z_][a-z0-9_-]{0,31}$`, пути файлов должны быть абсолютными, очищенными, без `..`. **Никаких shell-строк, собранных из пользовательского ввода** — `useradd`, `chpasswd`, `journalctl`, `ufw`, `wg`, `nmcli`, `apt-get` и т.п. вызываются через argv-слайс в `os/exec`.
 - **Аудит** — каждое изменяющее действие пишется в `audit_log` (пользователь, IP, действие, цель, результат, детали). Доступен в UI на `/audit`.
-- **Процесс** — работает от root (нужно для управления системными пользователями/сервисами/файлами). Hardening systemd-юнита: `ProtectKernelTunables=true`, `ProtectKernelModules=true`.
+- **Процесс** — по умолчанию работает от root; для least-privilege деплоя см. [docs/non-root-setup.md](docs/non-root-setup.md). Hardening systemd-юнита: `ProtectKernelTunables=true`, `ProtectKernelModules=true`.
 
-### Аудит
+### История аудитов
 
 Перед тегированием v0.1.0 (16.05.2026) был проведён ручной review + `govulncheck`: аудит `exec.Command` argv, параметризации SQL, режимов файлов, атрибутов cookie; глубокий разбор auth, CSRF, WebSocket origin, безопасности путей и выполнения команд. Результаты и by-design трейд-оффы — в [SECURITY.ru.md](SECURITY.ru.md#пре-релизный-аудит-v010--2026-05-16).
+
+Каждый последующий релиз (v0.2 → v0.9) добавлял unit-тесты для валидаторов новых модулей; `go test -race`, `staticcheck`, `gosec` (HIGH), `govulncheck` и `gitleaks` гоняются на каждом CI-билде.
 
 Нашли уязвимость? См. [SECURITY.ru.md](SECURITY.ru.md).
 
@@ -132,20 +145,28 @@ make docker-arm64  # arm64 Docker-образ через buildx
 
 ## Roadmap
 
-- [ ] Тесты (unit + property/fuzz для `auth`, `files/SafePath`, парсинга SSH-ключей)
-- [ ] RBAC — роли viewer/operator/admin (сейчас все пользователи панели = admin)
-- [ ] API-токены с scope'ами — для автоматизаций
-- [ ] Модуль cron / systemd timers
-- [ ] Модуль firewall (ufw / nftables)
-- [ ] Сетевые интерфейсы + WireGuard
-- [ ] Управление пакетами (apt/dnf)
-- [ ] Управление Docker-контейнерами
-- [ ] Бэкапы `/etc` и `/var/lib/webtermin`
-- [ ] Non-root режим запуска через sudo-allowlist
-- [ ] Tarball + .rpm + .apk пакеты
-- [ ] SAML/OIDC SSO
+Изначальный roadmap v0.1 → v0.9 **завершён**. Что доехало:
 
-PR'ы приветствуются — заведите issue перед началом нетривиальной работы.
+- ✅ RBAC (viewer / operator / admin) с last-admin guard
+- ✅ API-токены с фиксированной ролью на момент выпуска
+- ✅ OIDC SSO (Authentik / Authelia / Keycloak / Auth0 / …)
+- ✅ Cron, firewall (ufw), network (nmcli), WireGuard, пакеты (apt/dnf)
+- ✅ Portainer-grade Docker + Compose stacks
+- ✅ Бэкапы (`/etc/webtermin` + `/var/lib/webtermin` + custom paths в tar.gz)
+- ✅ Non-root режим (sudoers + docker-группа)
+- ✅ `.deb` / `.rpm` / `.apk` пакеты + multi-arch ghcr.io Docker
+- ✅ Русскоязычные README + SECURITY
+
+Идеи post-1.0 (когда наберём пользовательский feedback):
+
+- [ ] Backup по расписанию через systemd timers
+- [ ] Wi-Fi управление (`nmcli dev wifi …`)
+- [ ] 24-часовая история на дашборде (rrdtool-style)
+- [ ] Email / webhook алерты на выбранные audit-события
+- [ ] Compose: image build из `build:`, healthcheck, secrets
+- [ ] Docker: registry credentials, events stream, content browser для volume
+
+PR'ы приветствуются — см. [docs/contributing.md](docs/contributing.md). Перед началом нетривиальной работы заведите issue.
 
 ## Лицензия
 

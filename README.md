@@ -22,12 +22,13 @@
 
 | | |
 |---|---|
-| ⚡ **One binary** | Static Go executable (~13 MB) with the React SPA embedded via `go:embed`. No runtime, no separate static server. |
-| 🔐 **Security-first** | TLS by default (self-signed auto-gen or your own PEMs) · Argon2id · HttpOnly/Secure/Strict cookies · CSRF tokens · strict CSP · rate-limit + lockout · optional TOTP 2FA. |
+| ⚡ **One binary** | Static Go executable (~14 MB) with the React SPA embedded via `go:embed`. No runtime, no separate static server. Same binary across `.deb` / `.rpm` / `.apk` / Docker. |
+| 🔐 **Security-first** | TLS by default · Argon2id · HttpOnly/Secure/Strict cookies · CSRF tokens · strict CSP · rate-limit + lockout · optional TOTP 2FA · RBAC (viewer / operator / admin) · API tokens with role scoping · OIDC SSO. |
 | 📜 **Audit log** | Every mutating action recorded in SQLite — who, what, when, target, outcome, IP. Surfaced in-UI under `/audit`. |
-| 🧩 **Modules** | Dashboard · systemd services · Linux users + SSH keys · file manager with Monaco editor · in-browser PTY terminal. |
+| 🧩 **13 modules** | See [docs/modules.md](docs/modules.md). Systemd · Docker (Portainer-grade) · Compose stacks · cron · Linux users + SSH keys · files (Monaco) · PTY terminal · packages (apt/dnf) · firewall (ufw) · network (nmcli) · WireGuard · backups · panel users + tokens. |
 | 🎨 **Modern UI** | React + Tailwind + shadcn/Radix · recharts · Framer Motion · dark by default · responsive. |
 | 🏗️ **ARM-ready** | Cross-compiled for `linux/amd64` and `linux/arm64` (OrangePi, Raspberry Pi 4/5, ARM cloud VMs). |
+| 📚 **Documented** | Per-module reference, complete API, OIDC + non-root setup walkthroughs, contributor guide — all under [`docs/`](docs/). |
 
 ## Screenshots
 
@@ -102,15 +103,25 @@ The default config lives at `/etc/webtermin/config.yaml` (or `./config.yaml` whe
 
 After editing: `sudo systemctl restart webtermin`.
 
+## Documentation
+
+| | |
+|---|---|
+| **Modules reference** — [`docs/modules.md`](docs/modules.md) | Every module, what it does, which role can read / write, audit-log namespaces. |
+| **HTTP API** — [`docs/api.md`](docs/api.md) | Complete endpoint list grouped by module. The reference for anyone scripting webtermin via API tokens. |
+| **OIDC SSO setup** — [`docs/oidc-setup.md`](docs/oidc-setup.md) | Concrete walkthrough using Authentik as the worked example. |
+| **Non-root deployment** — [`docs/non-root-setup.md`](docs/non-root-setup.md) | sudoers + docker-group recipe for least-privilege deployments. |
+| **Contributing** — [`docs/contributing.md`](docs/contributing.md) | Repo layout, build / test / lint, the pattern for adding a new module. |
+
 ## Security model
 
 - **Transport** — HTTPS only, TLS 1.2+, HSTS 2y, X-Frame-Options DENY, strict Content-Security-Policy.
-- **Auth** — Argon2id (64 MiB, t=2, p=2). Session IDs are 256-bit, random, HttpOnly + Secure + SameSite=Strict. CSRF token required on every mutating request. Optional per-user TOTP 2FA. Rate-limit + lockout on failed logins.
-- **System actions** — Every action lives behind a typed allowlist. Unit names match `^[A-Za-z0-9@_.\-:\\]+\.(service|socket|...)$`; usernames match `^[a-z_][a-z0-9_-]{0,31}$`; file paths must be absolute, cleaned, and free of `..`. **No shell strings constructed from user input** — `useradd`, `chpasswd`, `journalctl`, etc. are invoked with argv slices via `os/exec`.
+- **Auth** — Argon2id (64 MiB, t=2, p=2). Session IDs are 256-bit, random, HttpOnly + Secure + SameSite=Strict. CSRF token required on every mutating request. Optional per-user TOTP 2FA. Rate-limit + lockout on failed logins. RBAC with three hierarchical roles. API tokens with per-token role scoping. Optional OIDC SSO sign-in.
+- **System actions** — Every action lives behind a typed allowlist. Unit names match `^[A-Za-z0-9@_.\-:\\]+\.(service|socket|...)$`; usernames match `^[a-z_][a-z0-9_-]{0,31}$`; file paths must be absolute, cleaned, and free of `..`. **No shell strings constructed from user input** — `useradd`, `chpasswd`, `journalctl`, `ufw`, `wg`, `nmcli`, `apt-get` etc. are invoked with argv slices via `os/exec`.
 - **Audit** — every mutating action writes to `audit_log` (user, IP, action, target, outcome, detail). Surfaced under `/audit` in the UI.
-- **Process** — runs as root (required to manage system users/services/files). systemd unit hardening: `ProtectKernelTunables=true`, `ProtectKernelModules=true`.
+- **Process** — runs as root by default; for least-privilege deployments see [docs/non-root-setup.md](docs/non-root-setup.md). systemd unit hardening: `ProtectKernelTunables=true`, `ProtectKernelModules=true`.
 
-### Audit
+### Audit history
 
 A manual review + `govulncheck` sweep was performed before tagging v0.1.0
 (2026-05-16): grep audit of `exec.Command` argv usage, SQL parameterization,
@@ -118,21 +129,37 @@ file modes, cookie attributes; deep review of auth, CSRF, WebSocket origin,
 path safety, and command exec. Results and the by-design trade-offs are
 documented in [SECURITY.md](SECURITY.md#pre-release-audit-v010-2026-05-16).
 
+Each subsequent release (v0.2 → v0.9) added unit tests for the new module's
+validators; `go test -race`, `staticcheck`, `gosec` (HIGH), `govulncheck`,
+and `gitleaks` all run on every CI build.
+
 Found a vulnerability? See [SECURITY.md](SECURITY.md).
 
 ## Roadmap
 
-- [ ] Cron / timer management
-- [ ] Firewall module (ufw / nftables rules)
-- [ ] Network interfaces + WireGuard
-- [ ] Package management (apt/dnf)
-- [ ] Docker container management
-- [ ] Backup snapshots of `/etc` and `/var/lib/webtermin`
-- [ ] Per-user RBAC (currently every panel user is admin)
-- [ ] Tarball + .rpm + .apk packages
-- [ ] Kubernetes-style declarative config (apply YAML, panel reconciles)
+Initial v0.1 → v0.9 roadmap is **complete**. Highlights of what shipped:
 
-PRs welcome — open an issue first to discuss anything non-trivial.
+- ✅ RBAC (viewer / operator / admin) + last-admin guard
+- ✅ API tokens with role-clamping at issue time
+- ✅ OIDC SSO (Authentik / Authelia / Keycloak / Auth0 / …)
+- ✅ Cron, firewall (ufw), network (nmcli), WireGuard, packages (apt/dnf)
+- ✅ Portainer-grade Docker module + Compose stacks
+- ✅ Backups (tar.gz of `/etc/webtermin` + `/var/lib/webtermin` + custom paths)
+- ✅ Non-root mode (sudoers + docker group)
+- ✅ `.deb` / `.rpm` / `.apk` packages + multi-arch ghcr.io Docker image
+- ✅ Russian-language README + SECURITY
+
+Post-1.0 ideas (gather user feedback first):
+
+- [ ] Backup scheduling via systemd timers
+- [ ] Wi-Fi management (`nmcli dev wifi …`)
+- [ ] 24h Dashboard history (rrdtool-style)
+- [ ] Email / webhook alerts on selected audit events
+- [ ] Compose: image build from `build:` directive, healthcheck, secrets
+- [ ] Docker: registry credentials, events stream, volume content browser
+
+PRs welcome — see [docs/contributing.md](docs/contributing.md). Open an
+issue first for anything non-trivial.
 
 ## License
 
