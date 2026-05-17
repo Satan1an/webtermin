@@ -119,6 +119,17 @@ func (s *Server) routes() http.Handler {
 	authed.HandleFunc("GET /api/docker/df", s.handleDockerDiskUsage)
 	authed.HandleFunc("POST /api/docker/prune", s.protected(auth.RoleAdmin, s.handleDockerPrune))
 
+	// Compose stacks — read viewer, write operator. A stack is just a labelled
+	// group of containers + their networks/volumes; deploys reuse the existing
+	// docker engine client so RBAC and audit-log semantics carry over.
+	authed.HandleFunc("GET /api/stacks", s.handleStacksList)
+	authed.HandleFunc("GET /api/stacks/{id}", s.handleStackGet)
+	authed.HandleFunc("POST /api/stacks", s.protected(auth.RoleOperator, s.handleStackCreate))
+	authed.HandleFunc("PUT /api/stacks/{id}", s.protected(auth.RoleOperator, s.handleStackUpdate))
+	authed.HandleFunc("POST /api/stacks/{id}/start", s.protected(auth.RoleOperator, s.handleStackStart))
+	authed.HandleFunc("POST /api/stacks/{id}/stop", s.protected(auth.RoleOperator, s.handleStackStop))
+	authed.HandleFunc("DELETE /api/stacks/{id}", s.protected(auth.RoleOperator, s.handleStackDelete))
+
 	mux.Handle("/api/auth/logout", s.requireAuth(s.requireCSRF(authed)))
 	mux.Handle("/api/", s.requireAuth(s.requireCSRF(authed)))
 

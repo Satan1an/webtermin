@@ -16,6 +16,7 @@ import { ApiTokensPage } from "@/pages/ApiTokensPage";
 import { CronPage } from "@/pages/CronPage";
 import { FirewallPage } from "@/pages/FirewallPage";
 import { DockerPage } from "@/pages/DockerPage";
+import { StacksPage } from "@/pages/StacksPage";
 import { Toaster } from "@/components/ui/toast";
 import { motion } from "framer-motion";
 
@@ -66,6 +67,7 @@ export default function App() {
             <Route path="/api-tokens" element={<ApiTokensPage />} />
             <Route path="/cron" element={<CronPage />} />
             <Route path="/firewall" element={<FirewallPage />} />
+            <Route path="/stacks" element={<StacksPage />} />
             <Route path="/docker" element={<DockerPage />} />
             <Route path="*" element={<NavigateAfterLogin />} />
           </Route>

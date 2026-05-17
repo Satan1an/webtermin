@@ -93,6 +93,14 @@ CREATE TABLE IF NOT EXISTS api_tokens (
 );
 CREATE INDEX IF NOT EXISTS idx_api_tokens_owner ON api_tokens(owner_user_id);
 CREATE INDEX IF NOT EXISTS idx_api_tokens_hash ON api_tokens(hash);
+
+CREATE TABLE IF NOT EXISTS stacks (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    name        TEXT NOT NULL UNIQUE,
+    compose     TEXT NOT NULL,
+    created_at  INTEGER NOT NULL,
+    updated_at  INTEGER NOT NULL
+);
 `
 
 func (s *Store) migrate() error {

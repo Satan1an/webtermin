@@ -7,6 +7,68 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] — 2026-05-17
+
+### Added — Docker Compose stacks
+
+webtermin can now deploy multi-container applications from a single
+`docker-compose.yml`. Paste YAML, give the stack a name, click Deploy —
+networks and volumes get created with `<stack>_<name>` prefixes,
+containers come up in `depends_on` topological order, and everything is
+labelled so the standard `docker compose` CLI keeps working too.
+
+**Stacks page** (`/stacks`)
+- List view with per-stack status (running / partial / stopped / empty),
+  service count, container count, last-updated.
+- Detail view shows the YAML in a Monaco editor (live syntax check, full
+  themed editor) and groups live containers under their compose service.
+- "Save & redeploy" button performs an idempotent redeploy — old
+  containers are torn down, the new compose file becomes the source of
+  truth, networks and volumes that already exist are reused.
+- Start / Stop / Remove on the list view.
+- Two-step confirm for Remove with explicit choice of "delete volumes
+  (data gone)" vs "keep volumes" — losing a database volume by accident
+  was the most-common Portainer complaint, so we made it harder.
+
+### Added — backend
+
+- `internal/compose` — yaml.v3 parser that supports both short-form and
+  long-form for ports, volumes, env vars, labels, command and depends_on.
+  `StringMapOrSeq` and `StringList` helpers absorb compose's "this field
+  can be a map or a list" inconsistency.
+- `compose.Manager` — orchestrates `docker.Client` to materialise stacks.
+  Topo-sort honours `depends_on` (and detects cycles), declared networks
+  & volumes are auto-created with stack-name prefix.
+- New SQLite table `stacks(id, name, compose, created_at, updated_at)`
+  with full CRUD in `store.stacks.go`. The compose YAML is persisted
+  as-is — engine state stays authoritative for what's actually running.
+- New endpoints under `/api/stacks` — list/get (viewer), create/update/
+  start/stop/delete (operator). All mutations write audit-log entries
+  with action prefix `stacks.*`.
+
+### Added — tests
+
+- `compose.Parse` round-trip on a representative multi-service stack
+  including both map-form and list-form environment, short and long
+  port specs, list-form command, depends_on ordering.
+- `compose.ParsePort` / `compose.ParseVolume` validators against
+  realistic inputs and metacharacter-laden adversarial ones.
+- `compose.ToSpec` produces the right `CreateContainerSpec` (labels,
+  network mode, restart policy, auto-start).
+- `topoSort` honours depends_on, detects cycles, tolerates dangling deps.
+- `ValidStackName` rejects upper-case, leading dash, too-long, etc.
+
+### Notes
+
+- Compose features deliberately out of scope for v0.6: build, healthcheck,
+  deploy.resources, secrets, configs, profiles, extension fields.
+- Multi-network attach for a single service is mapped to the first
+  declared network (engine API quirk) — v0.7 follow-up will issue a
+  follow-up `network connect` for the rest.
+- Stack containers carry both `webtermin.stack` and standard
+  `com.docker.compose.{project,service}` labels, so running
+  `docker compose ls` on the host shows webtermin-deployed stacks too.
+
 ## [0.5.0] — 2026-05-17
 
 ### Added — Portainer-grade Docker management
@@ -248,7 +310,8 @@ without leaving the page.
 - `.deb` packaging for `linux/amd64` and `linux/arm64` via GoReleaser + nfpm.
 - GitHub Actions: CI on PR/push (build + cross-build + go vet) and Release on tag (full GoReleaser flow).
 
-[Unreleased]: https://github.com/Satan1an/webtermin/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/Satan1an/webtermin/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/Satan1an/webtermin/releases/tag/v0.6.0
 [0.5.0]: https://github.com/Satan1an/webtermin/releases/tag/v0.5.0
 [0.4.0]: https://github.com/Satan1an/webtermin/releases/tag/v0.4.0
 [0.3.0]: https://github.com/Satan1an/webtermin/releases/tag/v0.3.0
