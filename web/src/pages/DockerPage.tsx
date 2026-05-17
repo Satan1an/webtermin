@@ -755,10 +755,51 @@ function StatTile({ label, value }: { label: string; value: string }) {
 }
 
 function ExecDialog({ target, onClose }: { target: DContainer | null; onClose: () => void }) {
+  // Inner ExecView is only mounted while target is set so the xterm host div is
+  // guaranteed to be in the DOM before ExecView's useEffect runs. The previous
+  // version did the xterm/WS setup directly in ExecDialog and lost the first
+  // render to a Radix Portal mount race — ref.current was still null.
+  const [shell, setShell] = useState("/bin/sh");
+  // Reset shell choice when reopening for a different container.
+  useEffect(() => { if (target) setShell("/bin/sh"); }, [target]);
+
+  return (
+    <Dialog open={!!target} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-5xl">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <ContainerIcon className="h-4 w-4 text-primary" />
+            {target?.Names[0]?.replace(/^\//, "")} — console
+            <span className="text-xs text-muted-foreground font-mono">({shell})</span>
+          </DialogTitle>
+        </DialogHeader>
+        <div className="flex gap-1.5 text-xs">
+          <span className="text-muted-foreground self-center mr-2">Shell:</span>
+          {["/bin/sh", "/bin/bash", "/bin/ash"].map((s) => (
+            <button
+              key={s}
+              onClick={() => setShell(s)}
+              className={`rounded-md border px-2 py-0.5 transition-colors ${
+                shell === s
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-input hover:bg-accent"
+              }`}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+        {target && <ExecView key={target.Id + shell} containerId={target.Id} shell={shell} />}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function ExecView({ containerId, shell }: { containerId: string; shell: string }) {
   const ref = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    if (!target || !ref.current) return;
+    if (!ref.current) return;
     const term = new XTerm({
       fontFamily: '"JetBrains Mono", ui-monospace, monospace',
       fontSize: 13,
@@ -774,10 +815,18 @@ function ExecDialog({ target, onClose }: { target: DContainer | null; onClose: (
     term.loadAddon(fit);
     term.open(ref.current);
     fit.fit();
+    term.writeln(`\x1b[90mconnecting to ${containerId.slice(0, 12)} via ${shell}…\x1b[0m`);
 
-    const ws = new WebSocket(wsURL(`/api/docker/containers/${target.Id}/exec/ws?shell=/bin/sh`));
+    const ws = new WebSocket(
+      wsURL(`/api/docker/containers/${containerId}/exec/ws?shell=${encodeURIComponent(shell)}`),
+    );
     ws.binaryType = "arraybuffer";
-    ws.onopen = () => term.focus();
+    ws.onopen = () => {
+      term.writeln("\x1b[90mconnected.\x1b[0m");
+      term.focus();
+      // Send the current TTY size right away so the prompt wraps correctly.
+      ws.send(JSON.stringify({ type: "resize", rows: term.rows, cols: term.cols }));
+    };
     ws.onmessage = (ev) => {
       if (ev.data instanceof ArrayBuffer) {
         term.write(new Uint8Array(ev.data));
@@ -785,10 +834,13 @@ function ExecDialog({ target, onClose }: { target: DContainer | null; onClose: (
         try {
           const m = JSON.parse(ev.data);
           if (m.type === "closed") term.write(`\r\n\x1b[31m${m.detail || "session closed"}\x1b[0m\r\n`);
+          else if (m.error) term.write(`\r\n\x1b[31m${m.error}\x1b[0m\r\n`);
         } catch { term.write(ev.data); }
       }
     };
-    ws.onclose = () => term.write("\r\n\x1b[33m[disconnected]\x1b[0m\r\n");
+    ws.onerror = () => term.write("\r\n\x1b[31m[websocket error]\x1b[0m\r\n");
+    ws.onclose = (ev) =>
+      term.write(`\r\n\x1b[33m[disconnected${ev.code ? ` code=${ev.code}` : ""}]\x1b[0m\r\n`);
 
     const onData = term.onData((d) => {
       if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: "data", data: d }));
@@ -799,23 +851,15 @@ function ExecDialog({ target, onClose }: { target: DContainer | null; onClose: (
     const ro = new ResizeObserver(() => fit.fit());
     ro.observe(ref.current);
     return () => {
-      onData.dispose(); onResize.dispose(); ro.disconnect(); ws.close(); term.dispose();
+      onData.dispose();
+      onResize.dispose();
+      ro.disconnect();
+      ws.close();
+      term.dispose();
     };
-  }, [target]);
+  }, [containerId, shell]);
 
-  return (
-    <Dialog open={!!target} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-5xl">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <ContainerIcon className="h-4 w-4 text-primary" />
-            {target?.Names[0]?.replace(/^\//, "")} — console (/bin/sh)
-          </DialogTitle>
-        </DialogHeader>
-        <div ref={ref} className="h-[60vh] bg-[#0a1020] p-2 rounded-md" />
-      </DialogContent>
-    </Dialog>
-  );
+  return <div ref={ref} className="h-[60vh] bg-[#0a1020] p-2 rounded-md" />;
 }
 
 function CreateContainerDialog({
