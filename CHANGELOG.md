@@ -7,6 +7,71 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] — 2026-05-17
+
+The three big remaining roadmap items, shipped together.
+
+### Added — Package management (`/packages`)
+
+- `internal/packages` auto-detects `apt-get` (Debian/Ubuntu) or `dnf`
+  (Fedora/RHEL/Alma) at process start.
+- Endpoints: `/api/packages/status` (public manager detection),
+  `/search`, `/installed`, plus admin-only `/install`, `/remove`,
+  `/upgrade`.
+- Frontend `/packages` page with search + installed tabs and per-row
+  install/remove action buttons.
+- Strict name validator `^[a-z0-9][a-z0-9.+~_:-]*$` blocks anything that
+  could escape argv. Run commands always pass `DEBIAN_FRONTEND=noninteractive`
+  and `-y`.
+
+### Added — WireGuard (`/wireguard`, admin-only)
+
+- `internal/wireguard` wraps the `wg` CLI for status/dump parsing and
+  for `wg set` peer add/remove. Generates Curve25519 keypairs in-process
+  via `golang.org/x/crypto/curve25519` — no shelling out for crypto.
+- Live status: per-peer endpoint, allowed-IPs, RX/TX byte counters and
+  last-handshake age badges.
+- "Add peer" dialog with optional Comment / Endpoint and Public-key
+  field. Leave the key empty and the server generates a keypair, returns
+  the private key exactly once for the user to paste into the client.
+- Persists changes to `/etc/wireguard/<iface>.conf` so they survive
+  reboot, and to the live interface via `wg set` so they apply immediately.
+- 6 unit tests including key-generation uniqueness, CIDR-list validation,
+  endpoint validation, dump parser, and peer-block removal in the config.
+
+### Added — OIDC SSO
+
+- `internal/auth/oidc.go` integrates `github.com/coreos/go-oidc/v3` for
+  the standard code-flow with PKCE-equivalent state cookie.
+- Config block:
+    oidc:
+      issuer: https://auth.example.com/realms/main
+      client_id: webtermin
+      client_secret: ...
+      redirect_url: https://webtermin.example.com/api/auth/oidc/callback
+      default_role: viewer
+- Login page reads `/api/auth/oidc/status` and renders a "Sign in with
+  SSO" button when configured. The button hits `/api/auth/oidc/start`,
+  which 302s the browser to the IdP; the IdP returns to
+  `/api/auth/oidc/callback` where we verify the ID token and issue a
+  webtermin session cookie.
+- First-time sign-ins create a local account keyed on the IdP's `sub`
+  (with `preferred_username` or sanitised subject as the username).
+  Existing accounts keep their already-stored role; new accounts get
+  `oidc.default_role` (falls back to `viewer`).
+- Audited as `auth.login.oidc` with `issuer=` detail. Local password
+  login keeps working in parallel so the admin can recover if the IdP
+  is unreachable.
+- New top-level dependencies: `github.com/coreos/go-oidc/v3`,
+  `golang.org/x/oauth2`, `github.com/go-jose/go-jose/v4` (transitive).
+
+### Tests
+
+- `packages.ValidName` accept/reject matrix.
+- `wireguard`: ValidIface, GenerateKeypair uniqueness, validCIDRList,
+  validEndpoint, parseDump on a 2-peer fixture, dropPeerBlock on a
+  multi-peer conf, ClientConfig render snapshot.
+
 ## [0.7.0] — 2026-05-17
 
 ### Added — distribution
@@ -357,7 +422,8 @@ without leaving the page.
 - `.deb` packaging for `linux/amd64` and `linux/arm64` via GoReleaser + nfpm.
 - GitHub Actions: CI on PR/push (build + cross-build + go vet) and Release on tag (full GoReleaser flow).
 
-[Unreleased]: https://github.com/Satan1an/webtermin/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/Satan1an/webtermin/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/Satan1an/webtermin/releases/tag/v0.8.0
 [0.7.0]: https://github.com/Satan1an/webtermin/releases/tag/v0.7.0
 [0.6.0]: https://github.com/Satan1an/webtermin/releases/tag/v0.6.0
 [0.5.0]: https://github.com/Satan1an/webtermin/releases/tag/v0.5.0

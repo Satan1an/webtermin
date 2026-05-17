@@ -15,6 +15,24 @@ type Config struct {
 	Security SecurityConfig `yaml:"security"`
 	Terminal TerminalConfig `yaml:"terminal"`
 	Logging  LoggingConfig  `yaml:"logging"`
+	OIDC     OIDCConfig     `yaml:"oidc"`
+}
+
+// OIDCConfig wires the panel to an external identity provider. When
+// Issuer + ClientID + ClientSecret are all set, the login page surfaces a
+// "Sign in with SSO" button and the OIDC code flow becomes available. Local
+// password login keeps working in parallel — disable it by deleting the
+// local admin account if you don't want it as a fallback.
+type OIDCConfig struct {
+	Issuer       string `yaml:"issuer"`
+	ClientID     string `yaml:"client_id"`
+	ClientSecret string `yaml:"client_secret"`
+	RedirectURL  string `yaml:"redirect_url"`
+	DefaultRole  string `yaml:"default_role"`
+}
+
+func (o OIDCConfig) Enabled() bool {
+	return o.Issuer != "" && o.ClientID != "" && o.ClientSecret != ""
 }
 
 type ServerConfig struct {

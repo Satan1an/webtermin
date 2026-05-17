@@ -18,6 +18,8 @@ import { FirewallPage } from "@/pages/FirewallPage";
 import { DockerPage } from "@/pages/DockerPage";
 import { StacksPage } from "@/pages/StacksPage";
 import { BackupPage } from "@/pages/BackupPage";
+import { PackagesPage } from "@/pages/PackagesPage";
+import { WireGuardPage } from "@/pages/WireGuardPage";
 import { Toaster } from "@/components/ui/toast";
 import { motion } from "framer-motion";
 
@@ -71,6 +73,8 @@ export default function App() {
             <Route path="/stacks" element={<StacksPage />} />
             <Route path="/docker" element={<DockerPage />} />
             <Route path="/backup" element={<BackupPage />} />
+            <Route path="/packages" element={<PackagesPage />} />
+            <Route path="/wireguard" element={<WireGuardPage />} />
             <Route path="*" element={<NavigateAfterLogin />} />
           </Route>
         ) : (

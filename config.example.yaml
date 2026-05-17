@@ -32,3 +32,14 @@ terminal:
 
 logging:
   level: "info" # debug | info | warn | error
+
+# Optional: OIDC single sign-on. Set issuer + client_id + client_secret to
+# turn on the "Sign in with SSO" button on the login page. Local password
+# login keeps working in parallel — disable it by deleting all non-OIDC
+# panel users if you want OIDC-only.
+oidc:
+  issuer: ""              # e.g. https://auth.example.com/realms/main
+  client_id: ""
+  client_secret: ""
+  redirect_url: ""        # e.g. https://webtermin.example.com/api/auth/oidc/callback
+  default_role: "viewer"  # role assigned to first-time OIDC sign-ins

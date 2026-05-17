@@ -1,7 +1,7 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Lock, ShieldCheck, TerminalSquare } from "lucide-react";
+import { Key, Lock, ShieldCheck, TerminalSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,8 +16,15 @@ export function LoginPage() {
   const [totp, setTotp] = useState("");
   const [needTotp, setNeedTotp] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [oidcEnabled, setOidcEnabled] = useState(false);
   const auth = useAuth();
   const nav = useNavigate();
+
+  useEffect(() => {
+    void api.get<{ enabled: boolean }>("/api/auth/oidc/status")
+      .then((s) => setOidcEnabled(s.enabled))
+      .catch(() => { /* OIDC just unavailable; password login still works */ });
+  }, []);
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -116,6 +123,23 @@ export function LoginPage() {
                 )}
               </Button>
             </form>
+            {oidcEnabled && (
+              <>
+                <div className="my-4 flex items-center gap-3 text-xs text-muted-foreground">
+                  <span className="flex-1 h-px bg-border" />
+                  or
+                  <span className="flex-1 h-px bg-border" />
+                </div>
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => { window.location.href = "/api/auth/oidc/start"; }}
+                >
+                  <Key className="h-4 w-4" />
+                  Sign in with SSO
+                </Button>
+              </>
+            )}
             <div className="mt-6 flex items-center justify-center gap-2 text-xs text-muted-foreground">
               <ShieldCheck className="h-3.5 w-3.5 text-success" />
               TLS · Argon2id · CSRF-protected

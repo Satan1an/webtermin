@@ -16,6 +16,12 @@ func (s *Server) routes() http.Handler {
 	mux.HandleFunc("POST /api/auth/login", s.handleLogin)
 	mux.HandleFunc("POST /api/auth/setup", s.handleFirstRunSetup)
 
+	// OIDC SSO is public by definition — start kicks off the redirect dance,
+	// callback verifies and issues a session cookie.
+	mux.HandleFunc("GET /api/auth/oidc/status", s.handleOIDCStatus)
+	mux.HandleFunc("GET /api/auth/oidc/start", s.handleOIDCStart)
+	mux.HandleFunc("GET /api/auth/oidc/callback", s.handleOIDCCallback)
+
 	// Everything below requires a valid session + CSRF token. Per-endpoint
 	// role policy: viewer is the floor, operator can perform write actions
 	// (start/stop services, manage files, open terminals), admin can manage
@@ -130,6 +136,20 @@ func (s *Server) routes() http.Handler {
 	authed.HandleFunc("POST /api/stacks/{id}/start", s.protected(auth.RoleOperator, s.handleStackStart))
 	authed.HandleFunc("POST /api/stacks/{id}/stop", s.protected(auth.RoleOperator, s.handleStackStop))
 	authed.HandleFunc("DELETE /api/stacks/{id}", s.protected(auth.RoleOperator, s.handleStackDelete))
+
+	// WireGuard — admin only (peer changes route real traffic).
+	authed.HandleFunc("GET /api/wireguard/status", s.protected(auth.RoleAdmin, s.handleWGStatus))
+	authed.HandleFunc("POST /api/wireguard/peers", s.protected(auth.RoleAdmin, s.handleWGAddPeer))
+	authed.HandleFunc("POST /api/wireguard/peers/remove", s.protected(auth.RoleAdmin, s.handleWGRemovePeer))
+
+	// Package management — read viewer+, mutations admin (a bad install can
+	// brick a host).
+	authed.HandleFunc("GET /api/packages/status", s.handlePackagesStatus)
+	authed.HandleFunc("GET /api/packages/search", s.handlePackagesSearch)
+	authed.HandleFunc("GET /api/packages/installed", s.protected(auth.RoleOperator, s.handlePackagesInstalled))
+	authed.HandleFunc("POST /api/packages/install", s.protected(auth.RoleAdmin, s.handlePackagesInstall))
+	authed.HandleFunc("POST /api/packages/remove", s.protected(auth.RoleAdmin, s.handlePackagesRemove))
+	authed.HandleFunc("POST /api/packages/upgrade", s.protected(auth.RoleAdmin, s.handlePackagesUpgrade))
 
 	// Backups — list/download is operator+, create/delete is admin (the
 	// archive itself contains the panel's whole state).

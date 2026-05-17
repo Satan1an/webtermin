@@ -25,11 +25,12 @@ type Server struct {
 	Audit   *audit.Logger
 	Log     *slog.Logger
 	WebFS   fs.FS // built React app, or nil for dev
+	OIDC    *auth.OIDCProvider
 	HTTPSrv *http.Server
 }
 
 func New(cfg *config.Config, st *store.Store, lg *slog.Logger, webFS fs.FS) *Server {
-	return &Server{
+	s := &Server{
 		Cfg:   cfg,
 		Store: st,
 		Auth:  auth.New(st, cfg),
@@ -37,6 +38,21 @@ func New(cfg *config.Config, st *store.Store, lg *slog.Logger, webFS fs.FS) *Ser
 		Log:   lg,
 		WebFS: webFS,
 	}
+	// Best-effort OIDC discovery. If the IdP is briefly unreachable at boot,
+	// log it and continue — local login still works.
+	if cfg.OIDC.Enabled() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		p, err := auth.NewOIDCProvider(ctx,
+			cfg.OIDC.Issuer, cfg.OIDC.ClientID, cfg.OIDC.ClientSecret, cfg.OIDC.RedirectURL)
+		if err != nil {
+			lg.Warn("oidc disabled: discovery failed", "err", err, "issuer", cfg.OIDC.Issuer)
+		} else {
+			lg.Info("oidc ready", "issuer", cfg.OIDC.Issuer)
+			s.OIDC = p
+		}
+	}
+	return s
 }
 
 // Run starts the HTTPS server and blocks until ctx is done.
