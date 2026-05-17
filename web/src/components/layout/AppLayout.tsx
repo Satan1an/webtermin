@@ -4,6 +4,7 @@ import {
   Activity,
   CircuitBoard,
   Files,
+  KeyRound,
   LogOut,
   ScrollText,
   Settings2,
@@ -33,6 +34,7 @@ const navItems = [
   { to: "/users", label: "Users", icon: Users, adminOnly: false },
   { to: "/files", label: "Files", icon: Files, adminOnly: false },
   { to: "/terminal", label: "Terminal", icon: TerminalSquare, adminOnly: false },
+  { to: "/api-tokens", label: "API tokens", icon: KeyRound, adminOnly: false },
   { to: "/panel-users", label: "Panel users", icon: Shield, adminOnly: true },
   { to: "/audit", label: "Audit log", icon: ScrollText, adminOnly: true },
 ];

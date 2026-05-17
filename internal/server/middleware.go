@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/Satan1an/webtermin/internal/auth"
 	"github.com/Satan1an/webtermin/internal/store"
@@ -37,9 +38,24 @@ func (s *Server) securityHeaders(next http.Handler) http.Handler {
 	})
 }
 
-// requireSession verifies the session cookie and injects session+user into ctx.
-func (s *Server) requireSession(next http.Handler) http.Handler {
+// requireAuth accepts either a valid session cookie OR a valid API bearer
+// token. Token auth bypasses CSRF (no cookie to ride). Session auth still
+// requires the CSRF middleware further down the chain.
+func (s *Server) requireAuth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Try bearer token first — explicit Authorization header beats cookie.
+		if tok := bearerToken(r); tok != "" {
+			t, user, err := s.lookupAPIToken(tok)
+			if err != nil {
+				writeJSONError(w, http.StatusUnauthorized, "invalid api token")
+				return
+			}
+			_ = s.Store.TouchAPIToken(t.ID)
+			next.ServeHTTP(w, r.WithContext(withTokenAuth(r.Context(), t, user)))
+			return
+		}
+
+		// Fall back to session cookie.
 		c, err := r.Cookie(auth.SessionCookieName)
 		if err != nil || c.Value == "" {
 			writeJSONError(w, http.StatusUnauthorized, "unauthenticated")
@@ -57,10 +73,57 @@ func (s *Server) requireSession(next http.Handler) http.Handler {
 	})
 }
 
-// requireCSRF checks the CSRF token on state-changing requests.
+// bearerToken extracts a `wt_…` API token from the Authorization header.
+func bearerToken(r *http.Request) string {
+	h := r.Header.Get("Authorization")
+	if h == "" {
+		return ""
+	}
+	const prefix = "Bearer "
+	if !strings.HasPrefix(h, prefix) {
+		return ""
+	}
+	v := strings.TrimSpace(h[len(prefix):])
+	if !auth.LooksLikeAPIToken(v) {
+		return ""
+	}
+	return v
+}
+
+// lookupAPIToken resolves a plaintext token to (token-record, owner-user).
+// Token role overrides the owner's current role for the lifetime of the
+// request — that's how we enforce "this token is only allowed read-only".
+func (s *Server) lookupAPIToken(plaintext string) (*store.APIToken, *store.User, error) {
+	hash := auth.HashAPIToken(plaintext)
+	t, err := s.Store.GetAPITokenByHash(hash)
+	if err != nil {
+		return nil, nil, err
+	}
+	if !t.ExpiresAt.IsZero() && time.Now().After(t.ExpiresAt) {
+		return nil, nil, store.ErrNotFound
+	}
+	user, err := s.Store.GetUser(t.OwnerUserID)
+	if err != nil {
+		return nil, nil, err
+	}
+	// Apply the token's scope: clamp the user's effective role to the token's.
+	// We make a shallow copy so we don't mutate the cached DB row.
+	clamped := *user
+	clamped.Role = t.Role
+	clamped.IsAdmin = t.Role == string(auth.RoleAdmin)
+	return t, &clamped, nil
+}
+
+// requireCSRF checks the CSRF token on state-changing requests, but only for
+// cookie-backed sessions. API-token clients don't have a session cookie and
+// thus aren't vulnerable to cross-site form posts riding their auth.
 func (s *Server) requireCSRF(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if isSafeMethod(r.Method) {
+			next.ServeHTTP(w, r)
+			return
+		}
+		if APITokenFrom(r) != nil {
 			next.ServeHTTP(w, r)
 			return
 		}

@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-05-17
+
+### Added
+
+- **API tokens for programmatic access**. Issue `wt_<32-byte-base64url>` tokens
+  scoped to a specific role; use with `Authorization: Bearer wt_…`.
+  - Tokens are 256-bit uniform random; only a SHA-256 hash is stored.
+  - Plaintext is shown exactly once at creation — never recoverable.
+  - The token's role *clamps* its owner's effective role for the request:
+    a viewer token stays viewer even if its owner is later promoted to admin.
+  - Token auth bypasses CSRF (no cookie to ride) but is otherwise treated
+    identically to a session — including all RBAC checks and audit logging.
+  - Role-cap on issue: a user cannot mint a token with privileges higher
+    than their own.
+  - Optional expiry in days (1–1825). Last-used timestamp is recorded.
+  - Owner can revoke their own tokens; admins can revoke any.
+- **`/api-tokens` page**: list, create (with role picker capped at the
+  current role), one-time reveal dialog with copy-to-clipboard and an
+  example curl command, revoke. Accessible to all authed roles —
+  everyone sees their own tokens; admins see them all.
+
+### Changed
+
+- `requireSession` middleware renamed to `requireAuth` and now accepts
+  either a session cookie or a bearer API token.
+- `/api/auth/me` returns an empty `csrf_token` for token-authed requests
+  (those clients don't need it).
+
+### Tests
+
+- 6 new server tests cover token creation, role-cap enforcement, scope
+  clamping (viewer token can't perform operator actions), revocation,
+  rejection of unknown tokens, and the non-owner-non-admin revoke guard.
+
 ## [0.2.0] — 2026-05-16
 
 ### Added
@@ -99,6 +133,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `.deb` packaging for `linux/amd64` and `linux/arm64` via GoReleaser + nfpm.
 - GitHub Actions: CI on PR/push (build + cross-build + go vet) and Release on tag (full GoReleaser flow).
 
-[Unreleased]: https://github.com/Satan1an/webtermin/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/Satan1an/webtermin/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/Satan1an/webtermin/releases/tag/v0.3.0
 [0.2.0]: https://github.com/Satan1an/webtermin/releases/tag/v0.2.0
 [0.1.0]: https://github.com/Satan1an/webtermin/releases/tag/v0.1.0

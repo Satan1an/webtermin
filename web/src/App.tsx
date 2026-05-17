@@ -12,6 +12,7 @@ import { FilesPage } from "@/pages/FilesPage";
 import { TerminalPage } from "@/pages/TerminalPage";
 import { AuditPage } from "@/pages/AuditPage";
 import { PanelUsersPage } from "@/pages/PanelUsersPage";
+import { ApiTokensPage } from "@/pages/ApiTokensPage";
 import { Toaster } from "@/components/ui/toast";
 import { motion } from "framer-motion";
 
@@ -59,6 +60,7 @@ export default function App() {
             <Route path="/terminal" element={<TerminalPage />} />
             <Route path="/audit" element={<AuditPage />} />
             <Route path="/panel-users" element={<PanelUsersPage />} />
+            <Route path="/api-tokens" element={<ApiTokensPage />} />
             <Route path="*" element={<NavigateAfterLogin />} />
           </Route>
         ) : (

@@ -41,6 +41,13 @@ func (s *Server) routes() http.Handler {
 	authed.HandleFunc("POST /api/panel/users/{id}/role", s.protected(auth.RoleAdmin, s.handlePanelUserSetRole))
 	authed.HandleFunc("POST /api/panel/users/{id}/password", s.protected(auth.RoleAdmin, s.handlePanelUserSetPassword))
 
+	// API tokens — any authed user manages their own; admins see/revoke all.
+	// The role-cap is enforced in the handler, not at the route, because we
+	// need to know the caller's role to decide.
+	authed.HandleFunc("GET /api/panel/tokens", s.handleAPITokensList)
+	authed.HandleFunc("POST /api/panel/tokens", s.handleAPITokenCreate)
+	authed.HandleFunc("DELETE /api/panel/tokens/{id}", s.handleAPITokenDelete)
+
 	// Read-only system metrics — viewer is enough.
 	authed.HandleFunc("GET /api/system/info", s.handleSystemInfo)
 	authed.HandleFunc("GET /api/system/metrics", s.handleSystemMetrics)
@@ -74,8 +81,8 @@ func (s *Server) routes() http.Handler {
 	// Terminal — operator+. A PTY is effectively a shell-exec on the host.
 	authed.HandleFunc("GET /api/terminal/ws", s.protected(auth.RoleOperator, s.handleTerminalWS))
 
-	mux.Handle("/api/auth/logout", s.requireSession(s.requireCSRF(authed)))
-	mux.Handle("/api/", s.requireSession(s.requireCSRF(authed)))
+	mux.Handle("/api/auth/logout", s.requireAuth(s.requireCSRF(authed)))
+	mux.Handle("/api/", s.requireAuth(s.requireCSRF(authed)))
 
 	if s.WebFS != nil {
 		mux.Handle("/", s.spaHandler())

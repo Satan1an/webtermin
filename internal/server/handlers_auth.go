@@ -107,9 +107,12 @@ func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleMe(w http.ResponseWriter, r *http.Request) {
-	sess := SessionFrom(r)
 	u := UserFrom(r)
-	writeJSON(w, 200, toSessionInfo(u, sess.CSRFToken))
+	csrf := ""
+	if sess := SessionFrom(r); sess != nil {
+		csrf = sess.CSRFToken
+	}
+	writeJSON(w, 200, toSessionInfo(u, csrf))
 }
 
 type setupReq struct {

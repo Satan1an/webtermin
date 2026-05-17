@@ -80,6 +80,19 @@ CREATE TABLE IF NOT EXISTS login_attempts (
     username   TEXT NOT NULL DEFAULT ''
 );
 CREATE INDEX IF NOT EXISTS idx_login_attempts_ip_ts ON login_attempts(ip, ts);
+
+CREATE TABLE IF NOT EXISTS api_tokens (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    name          TEXT NOT NULL,
+    hash          TEXT NOT NULL UNIQUE,
+    role          TEXT NOT NULL,
+    owner_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at    INTEGER NOT NULL,
+    last_used_at  INTEGER NOT NULL DEFAULT 0,
+    expires_at    INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS idx_api_tokens_owner ON api_tokens(owner_user_id);
+CREATE INDEX IF NOT EXISTS idx_api_tokens_hash ON api_tokens(hash);
 `
 
 func (s *Store) migrate() error {
