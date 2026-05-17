@@ -13,6 +13,9 @@ import { TerminalPage } from "@/pages/TerminalPage";
 import { AuditPage } from "@/pages/AuditPage";
 import { PanelUsersPage } from "@/pages/PanelUsersPage";
 import { ApiTokensPage } from "@/pages/ApiTokensPage";
+import { CronPage } from "@/pages/CronPage";
+import { FirewallPage } from "@/pages/FirewallPage";
+import { DockerPage } from "@/pages/DockerPage";
 import { Toaster } from "@/components/ui/toast";
 import { motion } from "framer-motion";
 
@@ -61,6 +64,9 @@ export default function App() {
             <Route path="/audit" element={<AuditPage />} />
             <Route path="/panel-users" element={<PanelUsersPage />} />
             <Route path="/api-tokens" element={<ApiTokensPage />} />
+            <Route path="/cron" element={<CronPage />} />
+            <Route path="/firewall" element={<FirewallPage />} />
+            <Route path="/docker" element={<DockerPage />} />
             <Route path="*" element={<NavigateAfterLogin />} />
           </Route>
         ) : (

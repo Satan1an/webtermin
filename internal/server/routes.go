@@ -81,6 +81,25 @@ func (s *Server) routes() http.Handler {
 	// Terminal — operator+. A PTY is effectively a shell-exec on the host.
 	authed.HandleFunc("GET /api/terminal/ws", s.protected(auth.RoleOperator, s.handleTerminalWS))
 
+	// Cron — read for any authed user; write is operator (it schedules code to
+	// run with elevated privileges).
+	authed.HandleFunc("GET /api/cron/{user}", s.handleCronList)
+	authed.HandleFunc("POST /api/cron/{user}", s.protected(auth.RoleOperator, s.handleCronAdd))
+	authed.HandleFunc("DELETE /api/cron/{user}/{line}", s.protected(auth.RoleOperator, s.handleCronDelete))
+
+	// Firewall — admin-only. A bad rule can lock the panel itself out.
+	authed.HandleFunc("GET /api/firewall/status", s.protected(auth.RoleAdmin, s.handleFirewallStatus))
+	authed.HandleFunc("POST /api/firewall/rules", s.protected(auth.RoleAdmin, s.handleFirewallAdd))
+	authed.HandleFunc("DELETE /api/firewall/rules/{number}", s.protected(auth.RoleAdmin, s.handleFirewallDelete))
+	authed.HandleFunc("POST /api/firewall/toggle", s.protected(auth.RoleAdmin, s.handleFirewallToggle))
+
+	// Docker — read for anyone authed; lifecycle actions are operator.
+	authed.HandleFunc("GET /api/docker/containers", s.handleDockerContainers)
+	authed.HandleFunc("GET /api/docker/images", s.handleDockerImages)
+	authed.HandleFunc("GET /api/docker/containers/{id}", s.handleDockerInspect)
+	authed.HandleFunc("POST /api/docker/containers/{id}/action", s.protected(auth.RoleOperator, s.handleDockerAction))
+	authed.HandleFunc("GET /api/docker/containers/{id}/logs/stream", s.handleDockerLogsStream)
+
 	mux.Handle("/api/auth/logout", s.requireAuth(s.requireCSRF(authed)))
 	mux.Handle("/api/", s.requireAuth(s.requireCSRF(authed)))
 

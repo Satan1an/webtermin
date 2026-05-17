@@ -2,13 +2,16 @@ import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Activity,
+  Boxes,
   CircuitBoard,
+  Clock,
   Files,
   KeyRound,
   LogOut,
   ScrollText,
   Settings2,
   Shield,
+  ShieldCheck,
   TerminalSquare,
   UserRound,
   Users,
@@ -31,10 +34,13 @@ import { toast } from "@/components/ui/toast";
 const navItems = [
   { to: "/dashboard", label: "Dashboard", icon: Activity, adminOnly: false },
   { to: "/services", label: "Services", icon: CircuitBoard, adminOnly: false },
+  { to: "/docker", label: "Docker", icon: Boxes, adminOnly: false },
+  { to: "/cron", label: "Cron", icon: Clock, adminOnly: false },
   { to: "/users", label: "Users", icon: Users, adminOnly: false },
   { to: "/files", label: "Files", icon: Files, adminOnly: false },
   { to: "/terminal", label: "Terminal", icon: TerminalSquare, adminOnly: false },
   { to: "/api-tokens", label: "API tokens", icon: KeyRound, adminOnly: false },
+  { to: "/firewall", label: "Firewall", icon: ShieldCheck, adminOnly: true },
   { to: "/panel-users", label: "Panel users", icon: Shield, adminOnly: true },
   { to: "/audit", label: "Audit log", icon: ScrollText, adminOnly: true },
 ];

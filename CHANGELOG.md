@@ -7,6 +7,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] — 2026-05-17
+
+### Added — three new modules
+
+- **Cron** (`/cron`) — list, add and delete entries per Linux user via the
+  standard `crontab -u` shadow utility. Schedule validator accepts the
+  classic 5-field syntax (`0 3 * * *`) and documented aliases
+  (`@reboot`, `@daily`, …); shell metacharacters in either schedule or
+  command are rejected before exec. Backend writes the whole crontab at
+  once over stdin, never assembling a shell string. Common-schedule
+  presets in the UI.
+- **Firewall** (`/firewall`, admin-only) — manages `ufw` rules:
+  status (active/default in/out/forward/logging), rules list with
+  numbered delete, add allow/deny rules, enable/disable the firewall.
+  Spec validator allowlist: bare ports (`22`), port/proto pairs
+  (`443/tcp`, `53/udp`), port ranges (`8000:8010/tcp`), named services
+  (`ssh`, `http`), and `from <CIDR> [to any port N proto P]` clauses —
+  anything outside this is rejected before reaching ufw. UI gracefully
+  shows an "install ufw" prompt on hosts without it.
+- **Docker** (`/docker`) — list containers and images, start / stop /
+  restart / pause / unpause / kill containers, stream container logs
+  over WebSocket with frame-header demultiplexing. Lifecycle actions are
+  operator+; listings/inspect/logs are open to any authed user (it's the
+  same surface area `docker ps` already gives).
+  Implemented as a hand-rolled HTTP client over `/var/run/docker.sock`
+  — no `github.com/docker/docker/client` dependency (which alone would
+  have ~3× the binary size). Returns 503 with a clear message on hosts
+  without Docker.
+
+### Added — backend
+
+- `internal/cron`, `internal/firewall`, `internal/docker` — three new
+  packages with strict allowlist input validation and full unit tests
+  for the validators / parsers.
+- Server handler bundles: `handlers_cron.go`, `handlers_firewall.go`,
+  `handlers_docker.go`. Every mutating action writes an audit-log entry.
+
+### Added — tests
+
+- `cron.ValidSchedule` / `ValidCommand` / `parseCrontab` / `splitEntry`
+  (rejects shell substitution in the schedule field).
+- `firewall.ValidSpec` / `parseRules` / `parseStatusHeader`.
+- `docker.ValidContainerID` / `ValidAction` (rejects uppercase hex,
+  oversized ids, names like `nginx`, traversal).
+
 ## [0.3.0] — 2026-05-17
 
 ### Added
@@ -133,7 +178,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `.deb` packaging for `linux/amd64` and `linux/arm64` via GoReleaser + nfpm.
 - GitHub Actions: CI on PR/push (build + cross-build + go vet) and Release on tag (full GoReleaser flow).
 
-[Unreleased]: https://github.com/Satan1an/webtermin/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/Satan1an/webtermin/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/Satan1an/webtermin/releases/tag/v0.4.0
 [0.3.0]: https://github.com/Satan1an/webtermin/releases/tag/v0.3.0
 [0.2.0]: https://github.com/Satan1an/webtermin/releases/tag/v0.2.0
 [0.1.0]: https://github.com/Satan1an/webtermin/releases/tag/v0.1.0
