@@ -137,6 +137,14 @@ func (s *Server) routes() http.Handler {
 	authed.HandleFunc("POST /api/stacks/{id}/stop", s.protected(auth.RoleOperator, s.handleStackStop))
 	authed.HandleFunc("DELETE /api/stacks/{id}", s.protected(auth.RoleOperator, s.handleStackDelete))
 
+	// Network — admin only (a bad change can lock you out of the host).
+	authed.HandleFunc("GET /api/network/interfaces", s.protected(auth.RoleAdmin, s.handleNetworkList))
+	authed.HandleFunc("GET /api/network/hostname", s.protected(auth.RoleAdmin, s.handleNetworkHostname))
+	authed.HandleFunc("POST /api/network/hostname", s.protected(auth.RoleAdmin, s.handleNetworkSetHostname))
+	authed.HandleFunc("POST /api/network/interfaces/{name}/static", s.protected(auth.RoleAdmin, s.handleNetworkSetStatic))
+	authed.HandleFunc("POST /api/network/interfaces/{name}/dhcp", s.protected(auth.RoleAdmin, s.handleNetworkSetDHCP))
+	authed.HandleFunc("POST /api/network/interfaces/{name}/dns", s.protected(auth.RoleAdmin, s.handleNetworkSetDNS))
+
 	// WireGuard — admin only (peer changes route real traffic).
 	authed.HandleFunc("GET /api/wireguard/status", s.protected(auth.RoleAdmin, s.handleWGStatus))
 	authed.HandleFunc("POST /api/wireguard/peers", s.protected(auth.RoleAdmin, s.handleWGAddPeer))

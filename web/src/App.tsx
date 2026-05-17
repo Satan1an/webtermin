@@ -20,6 +20,7 @@ import { StacksPage } from "@/pages/StacksPage";
 import { BackupPage } from "@/pages/BackupPage";
 import { PackagesPage } from "@/pages/PackagesPage";
 import { WireGuardPage } from "@/pages/WireGuardPage";
+import { NetworkPage } from "@/pages/NetworkPage";
 import { Toaster } from "@/components/ui/toast";
 import { motion } from "framer-motion";
 
@@ -75,6 +76,7 @@ export default function App() {
             <Route path="/backup" element={<BackupPage />} />
             <Route path="/packages" element={<PackagesPage />} />
             <Route path="/wireguard" element={<WireGuardPage />} />
+            <Route path="/network" element={<NetworkPage />} />
             <Route path="*" element={<NavigateAfterLogin />} />
           </Route>
         ) : (

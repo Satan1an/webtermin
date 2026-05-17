@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0] — 2026-05-17
+
+### Added — Network module (`/network`, admin-only)
+
+- `internal/network` wraps NetworkManager's `nmcli`. On hosts without
+  it (minimal containers, systemd-networkd-only setups) the module
+  reports `available: false` and the UI shows an install hint instead
+  of erroring out.
+- Interface list with state badge, MAC, IPv4 addresses + gateway,
+  IPv6 addresses, DNS servers, and IPv4 method (auto / manual).
+  Loopback is filtered out — it's noise.
+- Per-interface edit dialog: toggle Automatic (DHCP) vs Static. For
+  static mode: address (x.x.x.x/yy), gateway, comma- or
+  space-separated DNS list. Settings are applied immediately via
+  `nmcli con up` AND persisted via `nmcli con mod`, so they survive
+  reboot.
+- Hostname read via `hostname` and changed via
+  `hostnamectl --static set-hostname` (works on every systemd distro).
+- All inputs go through tight regexes before exec — interface name
+  follows IFNAMSIZ, IPv4 must include CIDR for static, hostnames are
+  RFC 1123. Each command runs via argv slices, never shell strings.
+- Confirmation dialog with explicit warning ("don't edit the
+  interface you're connected through") because a wrong gateway is
+  the easiest way to lock yourself out of a remote host.
+- Audited as `network.{static,dhcp,dns,hostname}`.
+
+### Tests
+
+- `network.ValidIface` (kernel IFNAMSIZ rules)
+- `network.ValidIPv4WithCIDR` (rejects bare IPs and IPv6)
+- `network.ValidIP` (accepts v4 and v6)
+- `network.ValidHostname` (RFC 1123)
+- `splitNmcliFields` handles `\:` escapes inside CONNECTION names
+
 ## [0.8.0] — 2026-05-17
 
 The three big remaining roadmap items, shipped together.
@@ -422,7 +456,8 @@ without leaving the page.
 - `.deb` packaging for `linux/amd64` and `linux/arm64` via GoReleaser + nfpm.
 - GitHub Actions: CI on PR/push (build + cross-build + go vet) and Release on tag (full GoReleaser flow).
 
-[Unreleased]: https://github.com/Satan1an/webtermin/compare/v0.8.0...HEAD
+[Unreleased]: https://github.com/Satan1an/webtermin/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/Satan1an/webtermin/releases/tag/v0.9.0
 [0.8.0]: https://github.com/Satan1an/webtermin/releases/tag/v0.8.0
 [0.7.0]: https://github.com/Satan1an/webtermin/releases/tag/v0.7.0
 [0.6.0]: https://github.com/Satan1an/webtermin/releases/tag/v0.6.0
