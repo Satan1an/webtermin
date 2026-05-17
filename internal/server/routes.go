@@ -93,12 +93,31 @@ func (s *Server) routes() http.Handler {
 	authed.HandleFunc("DELETE /api/firewall/rules/{number}", s.protected(auth.RoleAdmin, s.handleFirewallDelete))
 	authed.HandleFunc("POST /api/firewall/toggle", s.protected(auth.RoleAdmin, s.handleFirewallToggle))
 
-	// Docker — read for anyone authed; lifecycle actions are operator.
+	// Docker — read for anyone authed; lifecycle / create / remove / exec are operator.
 	authed.HandleFunc("GET /api/docker/containers", s.handleDockerContainers)
 	authed.HandleFunc("GET /api/docker/images", s.handleDockerImages)
 	authed.HandleFunc("GET /api/docker/containers/{id}", s.handleDockerInspect)
+	authed.HandleFunc("POST /api/docker/containers", s.protected(auth.RoleOperator, s.handleDockerContainerCreate))
+	authed.HandleFunc("DELETE /api/docker/containers/{id}", s.protected(auth.RoleOperator, s.handleDockerContainerRemove))
 	authed.HandleFunc("POST /api/docker/containers/{id}/action", s.protected(auth.RoleOperator, s.handleDockerAction))
 	authed.HandleFunc("GET /api/docker/containers/{id}/logs/stream", s.handleDockerLogsStream)
+	authed.HandleFunc("GET /api/docker/containers/{id}/stats/stream", s.handleDockerStatsStream)
+	authed.HandleFunc("GET /api/docker/containers/{id}/exec/ws", s.protected(auth.RoleOperator, s.handleDockerExecWS))
+
+	authed.HandleFunc("GET /api/docker/images/pull", s.protected(auth.RoleOperator, s.handleDockerImagePull))
+	authed.HandleFunc("DELETE /api/docker/images/{ref}", s.protected(auth.RoleOperator, s.handleDockerImageRemove))
+
+	authed.HandleFunc("GET /api/docker/networks", s.handleDockerNetworksList)
+	authed.HandleFunc("POST /api/docker/networks", s.protected(auth.RoleOperator, s.handleDockerNetworkCreate))
+	authed.HandleFunc("DELETE /api/docker/networks/{id}", s.protected(auth.RoleOperator, s.handleDockerNetworkRemove))
+
+	authed.HandleFunc("GET /api/docker/volumes", s.handleDockerVolumesList)
+	authed.HandleFunc("POST /api/docker/volumes", s.protected(auth.RoleOperator, s.handleDockerVolumeCreate))
+	authed.HandleFunc("DELETE /api/docker/volumes/{name}", s.protected(auth.RoleOperator, s.handleDockerVolumeRemove))
+
+	authed.HandleFunc("GET /api/docker/info", s.handleDockerInfo)
+	authed.HandleFunc("GET /api/docker/df", s.handleDockerDiskUsage)
+	authed.HandleFunc("POST /api/docker/prune", s.protected(auth.RoleAdmin, s.handleDockerPrune))
 
 	mux.Handle("/api/auth/logout", s.requireAuth(s.requireCSRF(authed)))
 	mux.Handle("/api/", s.requireAuth(s.requireCSRF(authed)))

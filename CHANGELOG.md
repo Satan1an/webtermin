@@ -7,6 +7,76 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] — 2026-05-17
+
+### Added — Portainer-grade Docker management
+
+The Docker page is now a full container-management workspace: containers,
+images, networks, volumes, and engine system info — all reachable as tabs
+without leaving the page.
+
+**Containers**
+- `Create container` form: image / name / restart policy / port bindings /
+  env vars / bind+volume mounts / auto-start checkbox. Image is pulled
+  automatically if not present on the host.
+- `Remove container` with confirm and automatic `force=1` for running
+  containers.
+- `Live stats` dialog over WebSocket — CPU %, memory used/limit, network
+  RX/TX, computed from the engine's `/containers/{id}/stats?stream=1`
+  feed using the standard CPU-delta formula.
+- `Console (exec)` — `docker exec -it <c> /bin/sh` right in the browser.
+  Implemented as a hijacked HTTP/1.1 upgrade over the Unix socket (no
+  HTTP-client abstraction is involved because Go's net/http doesn't
+  expose hijack on response bodies), bridged to xterm.js over WebSocket.
+  TTY resize events propagate to the container.
+
+**Images**
+- `Pull image` with live progress stream (engine's JSON event log over WS).
+- `Remove image` with force flag.
+
+**Networks** (new tab)
+- List / inspect / create (driver, optional subnet) / remove.
+- Built-in networks `host`, `bridge`, `none` are protected from
+  accidental removal both in the UI and backend.
+
+**Volumes** (new tab)
+- List / create / remove (with force). Driver defaults to `local`.
+
+**System** (new tab)
+- Engine info card: version, storage driver, kernel, OS, arch, CPUs,
+  memory, root dir.
+- Disk-usage panel with per-kind size breakdown and admin-only `Prune`
+  buttons for containers / images / volumes / networks.
+
+### Added — backend
+
+- `internal/docker` grew five files: `exec.go` (hijack-based PTY),
+  `networks.go`, `volumes.go`, `images.go` (pull stream + remove),
+  `system.go` (info / df / prune).
+- New validators with unit tests: `ValidImageRef`, `ValidContainerName`,
+  `ValidNetworkName`, `ValidVolumeName`, `ValidRestartPolicy`,
+  `ValidPruneTarget`, plus the `splitImageRef` parser.
+- New endpoints under `/api/docker`:
+  - `POST /containers` create (operator)
+  - `DELETE /containers/{id}` remove (operator)
+  - `GET /containers/{id}/stats/stream` (viewer)
+  - `GET /containers/{id}/exec/ws` (operator)
+  - `GET /images/pull` over WS (operator)
+  - `DELETE /images/{ref}` (operator)
+  - `GET|POST|DELETE /networks` (read viewer, write operator)
+  - `GET|POST|DELETE /volumes` (same)
+  - `GET /info`, `GET /df` (viewer)
+  - `POST /prune` (admin)
+
+### Notes
+
+- We deliberately did **not** pull in `github.com/docker/docker/client`
+  even with this much new functionality — the hand-rolled HTTP-over-unix
+  client now sits at ~600 LOC across the package. The official client
+  would have been ~50 MB of transitive dependencies for what we use.
+- Compose/stacks, image build from Dockerfile, registry auth, events
+  stream, and volume content browser are intentionally deferred to v0.6+.
+
 ## [0.4.0] — 2026-05-17
 
 ### Added — three new modules
@@ -178,7 +248,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `.deb` packaging for `linux/amd64` and `linux/arm64` via GoReleaser + nfpm.
 - GitHub Actions: CI on PR/push (build + cross-build + go vet) and Release on tag (full GoReleaser flow).
 
-[Unreleased]: https://github.com/Satan1an/webtermin/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/Satan1an/webtermin/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/Satan1an/webtermin/releases/tag/v0.5.0
 [0.4.0]: https://github.com/Satan1an/webtermin/releases/tag/v0.4.0
 [0.3.0]: https://github.com/Satan1an/webtermin/releases/tag/v0.3.0
 [0.2.0]: https://github.com/Satan1an/webtermin/releases/tag/v0.2.0
