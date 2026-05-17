@@ -103,6 +103,11 @@ dockers:
     use: buildx
     goarch: amd64
     dockerfile: Dockerfile.goreleaser
+    # Files goreleaser drops into the build context by default are just the
+    # binary + linux packages. Anything the Dockerfile COPYs beyond that must
+    # be listed here so it gets copied into the per-build tmp dir.
+    extra_files:
+      - config.example.yaml
     build_flag_templates:
       - "--platform=linux/amd64"
       - "--label=org.opencontainers.image.title=webtermin"
@@ -114,6 +119,8 @@ dockers:
     use: buildx
     goarch: arm64
     dockerfile: Dockerfile.goreleaser
+    extra_files:
+      - config.example.yaml
     build_flag_templates:
       - "--platform=linux/arm64"
       - "--label=org.opencontainers.image.title=webtermin"
