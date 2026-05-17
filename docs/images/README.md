@@ -1,19 +1,18 @@
 # Screenshots
 
-Drop UI screenshots into this directory using the names below — the root README
-references them as relative links.
+UI captures used by the project README and Release notes.
 
-| File                       | Source page          | Suggested size |
-| -------------------------- | -------------------- | -------------- |
-| `dashboard.png`            | `/dashboard`         | 1600×900       |
-| `services.png`             | `/services`          | 1600×900       |
-| `terminal.png`             | `/terminal`          | 1600×900       |
-| `files.png`                | `/files` (with editor open) | 1600×900 |
-| `login.png`                | `/login`             | 900×900        |
+| File             | Source page                | Notes |
+| ---------------- | -------------------------- | ----- |
+| `dashboard.png`  | `/dashboard`               | Hero shot — live CPU/mem/net metrics. |
+| `services.png`   | `/services`                | systemd unit list with action buttons. |
+| `stacks.png`     | `/stacks`                  | Compose stacks list (empty-state shown here). |
+| `cron.png`       | `/cron`                    | Per-user cron entries. |
+| `users.png`      | `/users`                   | Linux system users (not panel users). |
+| `terminal.png`   | `/terminal`                | Host-level web terminal. |
+| `firewall.png`   | `/firewall`                | Graceful empty-state when `ufw` isn't installed. |
 
-Tips:
-- Use a clean profile (no failing units, populated home dir).
-- Take captures with `chromium --hide-scrollbars --window-size=1600,900`
-  or Firefox's "Take Screenshot of Visible Area" (full-page captures look
-  too tall for inline display).
-- Compress before committing: `pngquant --quality=75-92 *.png`.
+To replace any of these:
+1. Capture at 1600×900 in a chromium incognito window (no extensions, no devtools).
+2. Save here under the same filename.
+3. Compress: `pngquant --quality=75-92 *.png` (or `oxipng -o 4 *.png`).

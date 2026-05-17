@@ -31,16 +31,20 @@
 
 ## Screenshots
 
-> Drop your captures into `docs/images/` — see [docs/images/README.md](docs/images/README.md) for the recommended naming.
+<p align="center">
+  <img src="docs/images/dashboard.png" alt="Dashboard with live CPU, memory, and network metrics" />
+</p>
 
 <table>
 <tr>
-<td width="50%"><img src="docs/images/dashboard.png" alt="Dashboard" /></td>
-<td width="50%"><img src="docs/images/services.png" alt="Services" /></td>
+<td width="33%"><img src="docs/images/services.png" alt="systemd services" /></td>
+<td width="33%"><img src="docs/images/stacks.png" alt="Docker Compose stacks" /></td>
+<td width="33%"><img src="docs/images/terminal.png" alt="Web terminal" /></td>
 </tr>
 <tr>
-<td><img src="docs/images/terminal.png" alt="Web terminal" /></td>
-<td><img src="docs/images/files.png" alt="File manager with editor" /></td>
+<td><img src="docs/images/cron.png" alt="Cron entries per user" /></td>
+<td><img src="docs/images/users.png" alt="Linux users management" /></td>
+<td><img src="docs/images/firewall.png" alt="Firewall — graceful empty state when ufw isn't installed" /></td>
 </tr>
 </table>
 

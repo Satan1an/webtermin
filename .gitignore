@@ -19,3 +19,7 @@
 .env
 .env.local
 .DS_Store
+
+# Local staging for raw screenshots — only curated, renamed copies under
+# docs/images/ are tracked.
+/screenshots/

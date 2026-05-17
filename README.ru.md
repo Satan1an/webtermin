@@ -31,16 +31,20 @@
 
 ## Скриншоты
 
-> Положите свои снимки UI в `docs/images/` — см. [docs/images/README.md](docs/images/README.md) за рекомендованными именами.
+<p align="center">
+  <img src="docs/images/dashboard.png" alt="Дашборд с живыми метриками CPU, памяти и сети" />
+</p>
 
 <table>
 <tr>
-<td width="50%"><img src="docs/images/dashboard.png" alt="Дашборд" /></td>
-<td width="50%"><img src="docs/images/services.png" alt="Сервисы" /></td>
+<td width="33%"><img src="docs/images/services.png" alt="Сервисы systemd" /></td>
+<td width="33%"><img src="docs/images/stacks.png" alt="Docker Compose стеки" /></td>
+<td width="33%"><img src="docs/images/terminal.png" alt="Веб-терминал" /></td>
 </tr>
 <tr>
-<td><img src="docs/images/terminal.png" alt="Веб-терминал" /></td>
-<td><img src="docs/images/files.png" alt="Файловый менеджер с редактором" /></td>
+<td><img src="docs/images/cron.png" alt="Cron-задачи по пользователям" /></td>
+<td><img src="docs/images/users.png" alt="Управление Linux-пользователями" /></td>
+<td><img src="docs/images/firewall.png" alt="Firewall — аккуратное empty-state когда ufw не установлен" /></td>
 </tr>
 </table>
 
