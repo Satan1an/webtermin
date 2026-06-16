@@ -60,7 +60,7 @@ jobs:
         run: go build -trimpath -ldflags="-s -w" -o /tmp/webtermin-arm64 ./cmd/webtermin
 
       - name: Upload host binary as artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: webtermin-snapshot-${{ github.sha }}
           path: /tmp/webtermin*
@@ -115,7 +115,7 @@ jobs:
 
       - name: Upload gosec SARIF
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: gosec-sarif-${{ github.sha }}
           path: gosec.sarif
