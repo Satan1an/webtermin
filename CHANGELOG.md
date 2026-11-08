@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.0] — 2026-11-08
+
 ### Added
 - Network, Firewall and WireGuard pages offer a one-click install of the missing tool (`network-manager`, `ufw`, `wireguard-tools`) for admins; no restart needed.
 - Package operations show a dry-run plan (install/upgrade/remove) before running; `POST /api/packages/plan`.
@@ -542,7 +544,9 @@ without leaving the page.
 - `.deb` packaging for `linux/amd64` and `linux/arm64` via GoReleaser + nfpm.
 - GitHub Actions: CI on PR/push (build + cross-build + go vet) and Release on tag (full GoReleaser flow).
 
-[Unreleased]: https://github.com/Satan1an/webtermin/compare/v0.9.1...HEAD
+[Unreleased]: https://github.com/Satan1an/webtermin/compare/v0.11.0...HEAD
+[0.11.0]: https://github.com/Satan1an/webtermin/releases/tag/v0.11.0
+[0.10.0]: https://github.com/Satan1an/webtermin/releases/tag/v0.10.0
 [0.9.1]: https://github.com/Satan1an/webtermin/releases/tag/v0.9.1
 [0.9.0]: https://github.com/Satan1an/webtermin/releases/tag/v0.9.0
 [0.8.0]: https://github.com/Satan1an/webtermin/releases/tag/v0.8.0

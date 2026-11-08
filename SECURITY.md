@@ -61,8 +61,8 @@ minor release receives security fixes.
 
 | Version  | Supported          |
 | -------- | ------------------ |
-| `0.10.x` | :white_check_mark: |
-| `< 0.10` | :x:                |
+| `0.11.x` | :white_check_mark: |
+| `< 0.11` | :x:                |
 
 ## Reporting a vulnerability
 
