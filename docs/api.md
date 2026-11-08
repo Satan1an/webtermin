@@ -17,6 +17,11 @@ TOKEN=wt_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 curl -H "Authorization: Bearer $TOKEN" https://my-host:8443/api/system/info
 ```
 
+## MCP
+
+`POST /api/mcp` — Model Context Protocol (streamable HTTP, stateless) for AI agents. API tokens
+only; session cookies get 401. Tools are filtered by the token's role. See [mcp.md](mcp.md).
+
 ## Auth
 
 | Method | Path                              | Role     | Notes |

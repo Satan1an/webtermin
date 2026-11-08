@@ -60,6 +60,7 @@ func main() {
 		logger.Warn("embedded web bundle unavailable", "err", err)
 	}
 
+	server.Version = version
 	srv := server.New(cfg, st, logger, webFS)
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)

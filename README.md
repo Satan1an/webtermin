@@ -24,6 +24,7 @@
 |---|---|
 | ⚡ **One binary** | Static Go executable (~14 MB) with the React SPA embedded via `go:embed`. No runtime, no separate static server. Same binary in `.deb` / `.rpm` / `.apk`. |
 | 🔐 **Security-first** | TLS by default · Argon2id · HttpOnly/Secure/Strict cookies · CSRF tokens · strict CSP · rate-limit + lockout · optional TOTP 2FA · RBAC (viewer / operator / admin) · API tokens with role scoping · OIDC SSO. |
+| 🤖 **AI agents, safely** | MCP endpoint: Claude Code, Cursor & co. get typed, role-scoped tools instead of a root shell — every call audited. Read-only for now; changes will need an approval the agent can't give itself. [docs/mcp.md](docs/mcp.md) |
 | 📦 **Can't brick the box** | Package installs are dry-run, checked and confirmed. Core packages, the running kernel, the bootloader and the live network stack are never removed — see [how](#package-safety). |
 | 📜 **Audit log** | Every mutating action recorded in SQLite — who, what, when, target, outcome, IP. Surfaced in-UI under `/audit`. |
 | 🧩 **13 modules** | See [docs/modules.md](docs/modules.md). Systemd · Docker (Portainer-grade) · Compose stacks · cron · Linux users + SSH keys · files (Monaco) · PTY terminal · packages (apt/dnf, dry-run plans) · firewall (ufw) · network (nmcli) · WireGuard · backups · panel users + tokens. |
@@ -154,6 +155,7 @@ Restart webtermin and press **Send test** on the Audit page.
 | | |
 |---|---|
 | **Modules reference** — [`docs/modules.md`](docs/modules.md) | Every module, what it does, which role can read / write, audit-log namespaces. |
+| **AI agents (MCP)** — [`docs/mcp.md`](docs/mcp.md) | Connecting Claude Code / Cursor, tools per role, security model. |
 | **HTTP API** — [`docs/api.md`](docs/api.md) | Complete endpoint list grouped by module. The reference for anyone scripting webtermin via API tokens. |
 | **OIDC SSO setup** — [`docs/oidc-setup.md`](docs/oidc-setup.md) | Concrete walkthrough using Authentik as the worked example. |
 | **Non-root deployment** — [`docs/non-root-setup.md`](docs/non-root-setup.md) | sudoers + docker-group recipe for least-privilege deployments. |

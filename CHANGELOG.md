@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.0] — 2026-11-08
+
+### Added
+- MCP endpoint for AI agents (`/api/mcp`, streamable HTTP, API tokens only): read-only tools for host status, services, containers, logs, network, pending updates, package dry runs and the audit log. The token's role decides which tools the agent sees; every call is audited as `mcp.<tool>`. Setup in [docs/mcp.md](docs/mcp.md); the token dialog shows the `claude mcp add` command.
+
 ## [0.11.0] — 2026-11-08
 
 ### Added
@@ -544,7 +549,8 @@ without leaving the page.
 - `.deb` packaging for `linux/amd64` and `linux/arm64` via GoReleaser + nfpm.
 - GitHub Actions: CI on PR/push (build + cross-build + go vet) and Release on tag (full GoReleaser flow).
 
-[Unreleased]: https://github.com/Satan1an/webtermin/compare/v0.11.0...HEAD
+[Unreleased]: https://github.com/Satan1an/webtermin/compare/v0.12.0...HEAD
+[0.12.0]: https://github.com/Satan1an/webtermin/releases/tag/v0.12.0
 [0.11.0]: https://github.com/Satan1an/webtermin/releases/tag/v0.11.0
 [0.10.0]: https://github.com/Satan1an/webtermin/releases/tag/v0.10.0
 [0.9.1]: https://github.com/Satan1an/webtermin/releases/tag/v0.9.1

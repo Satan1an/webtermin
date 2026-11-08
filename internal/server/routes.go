@@ -180,6 +180,9 @@ func (s *Server) routes() http.Handler {
 	authed.HandleFunc("GET /api/backups/{id}/download", s.protected(auth.RoleAdmin, s.handleBackupDownload))
 	authed.HandleFunc("DELETE /api/backups/{id}", s.protected(auth.RoleAdmin, s.handleBackupDelete))
 
+	// MCP for AI agents: API tokens only, tools filtered by the token's role.
+	authed.Handle("/api/mcp", s.mcpHandler())
+
 	mux.Handle("/api/auth/logout", s.requireAuth(s.requireCSRF(authed)))
 	mux.Handle("/api/", s.requireAuth(s.requireCSRF(authed)))
 

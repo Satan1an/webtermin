@@ -267,6 +267,7 @@ function CreateTokenDialog({
 }
 
 function RevealDialog({ plaintext, onClose }: { plaintext: string | null; onClose: () => void }) {
+  const origin = window.location.origin;
   const copy = async () => {
     if (!plaintext) return;
     await navigator.clipboard.writeText(plaintext);
@@ -287,11 +288,19 @@ function RevealDialog({ plaintext, onClose }: { plaintext: string | null; onClos
             <Copy className="h-4 w-4" />
           </Button>
         </div>
-        <div className="rounded-md bg-muted/40 p-3 text-xs text-muted-foreground">
-          Use it like:
-          <pre className="mt-1 font-mono text-[11px]">
-            curl -H &apos;Authorization: Bearer {plaintext ?? "wt_…"}&apos; https://&lt;host&gt;:8443/api/auth/me
-          </pre>
+        <div className="rounded-md bg-muted/40 p-3 text-xs text-muted-foreground space-y-2">
+          <div>
+            REST API:
+            <pre className="mt-1 font-mono text-[11px] whitespace-pre-wrap break-all">
+              curl -H &apos;Authorization: Bearer {plaintext ?? "wt_…"}&apos; {origin}/api/auth/me
+            </pre>
+          </div>
+          <div>
+            AI agent over MCP (Claude Code; tools follow this token&apos;s role):
+            <pre className="mt-1 font-mono text-[11px] whitespace-pre-wrap break-all">
+              claude mcp add --transport http webtermin {origin}/api/mcp --header &apos;Authorization: Bearer {plaintext ?? "wt_…"}&apos;
+            </pre>
+          </div>
         </div>
         <div className="flex justify-end">
           <Button onClick={onClose}>Done</Button>

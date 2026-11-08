@@ -34,6 +34,21 @@ func TailJournal(ctx context.Context, unit string, lines int) (io.ReadCloser, er
 	return &cmdReader{cmd: cmd, r: stdout, br: bufio.NewReader(stdout)}, nil
 }
 
+// RecentJournal returns the last `lines` journal lines for unit, without
+// following.
+func RecentJournal(ctx context.Context, unit string, lines int) (string, error) {
+	if !ValidUnitName(unit) {
+		return "", errInvalidUnit
+	}
+	if lines <= 0 || lines > 1000 {
+		lines = 200
+	}
+	out, err := exec.CommandContext(ctx, "journalctl",
+		"-u", unit, "--no-pager", "-n", itoa(lines), "-o", "short-iso",
+	).Output()
+	return string(out), err
+}
+
 var errInvalidUnit = invalidUnit{}
 
 type invalidUnit struct{}

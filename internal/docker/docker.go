@@ -431,6 +431,15 @@ func (c *Client) Stats(ctx context.Context, id string) (io.ReadCloser, error) {
 // Logs streams demultiplexed stdout+stderr for a container. The returned
 // reader yields plain UTF-8 text; close it to stop streaming. tail=N tail lines.
 func (c *Client) Logs(ctx context.Context, id string, tail int) (io.ReadCloser, error) {
+	return c.logs(ctx, id, tail, true)
+}
+
+// LogsSnapshot returns the last `tail` lines and ends — no follow.
+func (c *Client) LogsSnapshot(ctx context.Context, id string, tail int) (io.ReadCloser, error) {
+	return c.logs(ctx, id, tail, false)
+}
+
+func (c *Client) logs(ctx context.Context, id string, tail int, follow bool) (io.ReadCloser, error) {
 	if !ValidContainerID(id) {
 		return nil, errors.New("invalid container id")
 	}
@@ -440,7 +449,9 @@ func (c *Client) Logs(ctx context.Context, id string, tail int) (io.ReadCloser, 
 	q := url.Values{}
 	q.Set("stdout", "1")
 	q.Set("stderr", "1")
-	q.Set("follow", "1")
+	if follow {
+		q.Set("follow", "1")
+	}
 	q.Set("tail", fmt.Sprintf("%d", tail))
 	q.Set("timestamps", "0")
 
