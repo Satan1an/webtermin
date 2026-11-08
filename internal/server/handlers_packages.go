@@ -114,7 +114,6 @@ func (s *Server) runPackagesOp(w http.ResponseWriter, r *http.Request, op string
 	target := strings.Join(req.Names, ",")
 	p, err := packages.Execute(r.Context(), op, req.Names, req.ConfirmRemove)
 	if err != nil {
-		s.auditPkg(r, "pkg."+op, target, audit.OutcomeError, err.Error())
 		status := 500
 		switch {
 		case errors.Is(err, packages.ErrBusy), errors.Is(err, packages.ErrNeedsConfirm):
@@ -126,6 +125,7 @@ func (s *Server) runPackagesOp(w http.ResponseWriter, r *http.Request, op string
 				err = fmt.Errorf("%w: %s", err, strings.TrimPrefix(b.Name+": "+b.Reason, ": "))
 			}
 		}
+		s.auditPkg(r, "pkg."+op, target, audit.OutcomeError, err.Error())
 		writeJSON(w, status, pkgOpError{Error: err.Error(), Plan: p})
 		return
 	}

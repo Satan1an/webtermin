@@ -640,9 +640,9 @@ function StateBadge({ state, status }: { state: string; status: string }) {
 
 function portList(c: DContainer): string {
   if (!c.Ports?.length) return "—";
-  return c.Ports.slice(0, 3)
-    .map((p) => (p.PublicPort ? `${p.PublicPort}→${p.PrivatePort}/${p.Type}` : `${p.PrivatePort}/${p.Type}`))
-    .join(", ");
+  // Docker reports a published port once per bind address (0.0.0.0 and ::).
+  const ports = c.Ports.map((p) => (p.PublicPort ? `${p.PublicPort}→${p.PrivatePort}/${p.Type}` : `${p.PrivatePort}/${p.Type}`));
+  return [...new Set(ports)].slice(0, 3).join(", ");
 }
 
 function LogsDialog({ target, onClose }: { target: DContainer | null; onClose: () => void }) {

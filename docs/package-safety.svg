@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 430" role="img" aria-label="Package safety flow: request, dry run, safety checks, admin confirms the plan, guarded execution, audit">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0b1220"/>
+      <stop offset="100%" stop-color="#0a1530"/>
+    </linearGradient>
+    <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse">
+      <circle cx="1" cy="1" r="1" fill="#1f2a44" opacity="0.55"/>
+    </pattern>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#22d3ee"/>
+    </marker>
+    <marker id="arrowRed" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#fb7185"/>
+    </marker>
+  </defs>
+
+  <rect width="1200" height="430" rx="18" fill="url(#bg)"/>
+  <rect width="1200" height="430" rx="18" fill="url(#grid)"/>
+
+  <g font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif">
+    <text x="48" y="58" font-size="26" font-weight="700" fill="#f1f5f9" letter-spacing="-0.5">Installing a package can't brick the box</text>
+    <text x="48" y="84" font-size="15" fill="#94a3b8">Every install, remove and upgrade is planned, checked and confirmed first. The server repeats the checks — the UI is not trusted.</text>
+
+    <!-- step boxes: x positions 48, 278, 508, 738, 968 ; width 184 -->
+    <g font-size="13">
+      <g transform="translate(48,124)">
+        <rect width="184" height="150" rx="14" fill="#0d1a2e" stroke="#22d3ee" stroke-opacity="0.45"/>
+        <text x="18" y="32" font-size="12" font-weight="700" fill="#22d3ee" letter-spacing="1">1 · DRY RUN</text>
+        <text x="18" y="60" font-size="15" font-weight="600" fill="#e2e8f0">What would</text>
+        <text x="18" y="80" font-size="15" font-weight="600" fill="#e2e8f0">change?</text>
+        <text x="18" y="110" font-family="JetBrains Mono, ui-monospace, monospace" fill="#94a3b8">apt-get -s</text>
+        <text x="18" y="130" font-family="JetBrains Mono, ui-monospace, monospace" fill="#94a3b8">dnf --assumeno</text>
+      </g>
+      <g transform="translate(278,124)">
+        <rect width="184" height="150" rx="14" fill="#0d1a2e" stroke="#fb7185" stroke-opacity="0.5"/>
+        <text x="18" y="32" font-size="12" font-weight="700" fill="#fb7185" letter-spacing="1">2 · BLOCK</text>
+        <text x="18" y="58" fill="#cbd5e1">core &amp; Essential pkgs</text>
+        <text x="18" y="78" fill="#cbd5e1">running kernel</text>
+        <text x="18" y="98" fill="#cbd5e1">bootloader · board</text>
+        <text x="18" y="118" fill="#cbd5e1">active network stack</text>
+        <text x="18" y="138" fill="#cbd5e1">webtermin · &lt; 500 MB</text>
+      </g>
+      <g transform="translate(508,124)">
+        <rect width="184" height="150" rx="14" fill="#0d1a2e" stroke="#ffd166" stroke-opacity="0.5"/>
+        <text x="18" y="32" font-size="12" font-weight="700" fill="#ffd166" letter-spacing="1">3 · WARN</text>
+        <text x="18" y="58" fill="#cbd5e1">NetworkManager over</text>
+        <text x="18" y="78" fill="#cbd5e1">networkd / netplan</text>
+        <text x="18" y="98" fill="#cbd5e1">Docker stops containers</text>
+        <text x="18" y="118" fill="#cbd5e1">kernel needs reboot</text>
+        <text x="18" y="138" fill="#cbd5e1">N packages removed</text>
+      </g>
+      <g transform="translate(738,124)">
+        <rect width="184" height="150" rx="14" fill="#0d1a2e" stroke="#c084fc" stroke-opacity="0.5"/>
+        <text x="18" y="32" font-size="12" font-weight="700" fill="#c084fc" letter-spacing="1">4 · CONFIRM</text>
+        <text x="18" y="58" fill="#cbd5e1">Admin sees the plan:</text>
+        <text x="18" y="78" fill="#cbd5e1">install · upgrade ·</text>
+        <text x="18" y="98" fill="#cbd5e1">remove, by name</text>
+        <text x="18" y="126" fill="#94a3b8" font-size="12">Removals must be listed</text>
+        <text x="18" y="142" fill="#94a3b8" font-size="12">explicitly or the run aborts</text>
+      </g>
+      <g transform="translate(968,124)">
+        <rect width="184" height="150" rx="14" fill="#0d1a2e" stroke="#00DC82" stroke-opacity="0.55"/>
+        <text x="18" y="32" font-size="12" font-weight="700" fill="#00DC82" letter-spacing="1">5 · RUN</text>
+        <text x="18" y="58" font-family="JetBrains Mono, ui-monospace, monospace" fill="#cbd5e1">--no-remove</text>
+        <text x="18" y="78" font-family="JetBrains Mono, ui-monospace, monospace" fill="#cbd5e1">--force-confold</text>
+        <text x="18" y="98" fill="#cbd5e1">one at a time</text>
+        <text x="18" y="118" fill="#cbd5e1">waits for dpkg lock</text>
+        <text x="18" y="138" fill="#cbd5e1">survives a closed tab</text>
+      </g>
+    </g>
+
+    <g stroke="#22d3ee" stroke-width="2" fill="none" marker-end="url(#arrow)">
+      <line x1="236" y1="199" x2="272" y2="199"/>
+      <line x1="466" y1="199" x2="502" y2="199"/>
+      <line x1="696" y1="199" x2="732" y2="199"/>
+      <line x1="926" y1="199" x2="962" y2="199"/>
+    </g>
+
+    <!-- refusal branch -->
+    <path d="M370 280 L 370 330 L 600 330" fill="none" stroke="#fb7185" stroke-width="2" stroke-dasharray="6 5" marker-end="url(#arrowRed)"/>
+    <text x="610" y="335" font-size="13" fill="#fb7185">403 — refused, with the reason. Use the terminal if you really mean it.</text>
+
+    <!-- audit bar -->
+    <g transform="translate(48,360)">
+      <rect width="1104" height="40" rx="12" fill="#0a1020" stroke="#1e293b"/>
+      <circle cx="20" cy="20" r="4" fill="#c084fc"/>
+      <text x="34" y="25" font-size="13" fill="#cbd5e1">Every attempt lands in the audit log — including refusals:</text>
+      <text x="408" y="25" font-size="13" font-family="JetBrains Mono, ui-monospace, monospace" fill="#94a3b8">pkg.remove · sudo · <tspan fill="#fb7185">error</tspan> · removing it locks admins out of privilege escalation</text>
+    </g>
+  </g>
+</svg>

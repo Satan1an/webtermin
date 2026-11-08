@@ -1,0 +1,129 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 560" role="img" aria-label="webtermin architecture: browser or API client, over HTTPS, into a single Go binary with layered security, which drives host subsystems through a typed allowlist">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0b1220"/>
+      <stop offset="100%" stop-color="#0a1530"/>
+    </linearGradient>
+    <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse">
+      <circle cx="1" cy="1" r="1" fill="#1f2a44" opacity="0.55"/>
+    </pattern>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#00DC82" stop-opacity="0.16"/>
+      <stop offset="100%" stop-color="#00DC82" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#00DC82"/>
+      <stop offset="100%" stop-color="#22d3ee"/>
+    </linearGradient>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#22d3ee"/>
+    </marker>
+  </defs>
+
+  <rect width="1200" height="560" rx="18" fill="url(#bg)"/>
+  <rect width="1200" height="560" rx="18" fill="url(#grid)"/>
+  <ellipse cx="600" cy="290" rx="330" ry="260" fill="url(#glow)"/>
+
+  <g font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif">
+    <text x="48" y="58" font-size="26" font-weight="700" fill="#f1f5f9" letter-spacing="-0.5">Request path</text>
+    <text x="48" y="84" font-size="15" fill="#94a3b8">One static binary between you and the host. Every request crosses every layer; nothing reaches a shell string.</text>
+
+    <!-- Clients -->
+    <g transform="translate(48,150)">
+      <rect width="230" height="140" rx="14" fill="#0a1020" stroke="#1e293b"/>
+      <g transform="translate(16,16)">
+        <circle cx="0" cy="0" r="5" fill="#fb7185"/><circle cx="15" cy="0" r="5" fill="#fbbf24"/><circle cx="30" cy="0" r="5" fill="#34d399"/>
+      </g>
+      <text x="20" y="62" font-size="17" font-weight="600" fill="#e2e8f0">Browser</text>
+      <text x="20" y="86" font-size="13" fill="#94a3b8">React SPA · xterm.js</text>
+      <text x="20" y="108" font-size="13" fill="#94a3b8">session cookie + CSRF</text>
+      <text x="20" y="128" font-size="13" fill="#94a3b8">password · TOTP · OIDC</text>
+    </g>
+    <g transform="translate(48,316)">
+      <rect width="230" height="104" rx="14" fill="#0a1020" stroke="#1e293b"/>
+      <text x="20" y="36" font-size="17" font-weight="600" fill="#e2e8f0">API client / CI</text>
+      <text x="20" y="62" font-size="13" fill="#94a3b8">Bearer token, role-scoped</text>
+      <text x="20" y="84" font-size="13" font-family="JetBrains Mono, ui-monospace, monospace" fill="#64748b">curl -H "Authorization…"</text>
+    </g>
+
+    <!-- arrows in -->
+    <path d="M286 220 C 330 220, 330 270, 372 270" fill="none" stroke="#22d3ee" stroke-width="2" marker-end="url(#arrow)"/>
+    <path d="M286 368 C 330 368, 330 318, 372 318" fill="none" stroke="#22d3ee" stroke-width="2" marker-end="url(#arrow)"/>
+    <text x="300" y="300" font-size="12" font-weight="600" fill="#22d3ee" text-anchor="middle" transform="rotate(-90 300 300)">HTTPS · TLS 1.2+</text>
+
+    <!-- Binary -->
+    <g transform="translate(380,118)">
+      <rect width="440" height="400" rx="18" fill="#0d1a2e" stroke="url(#accent)" stroke-width="2"/>
+      <g transform="translate(22,22)">
+        <rect width="36" height="36" rx="9" fill="url(#accent)"/>
+        <g fill="none" stroke="#06121f" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="10,12 18,18 10,24"/><line x1="21" y1="26" x2="28" y2="26"/>
+        </g>
+      </g>
+      <text x="72" y="40" font-size="19" font-weight="700" fill="#f1f5f9">webtermin</text>
+      <text x="72" y="60" font-size="13" fill="#94a3b8">single Go binary · SPA embedded · systemd unit</text>
+
+      <g font-size="14">
+        <g transform="translate(22,84)">
+          <rect width="396" height="44" rx="10" fill="#0f2236" stroke="#22d3ee" stroke-opacity="0.35"/>
+          <circle cx="18" cy="22" r="4" fill="#22d3ee"/>
+          <text x="34" y="20" font-weight="600" fill="#e2e8f0">Edge</text>
+          <text x="34" y="36" font-size="12" fill="#94a3b8">TLS · strict CSP · Origin check · rate limit + lockout</text>
+        </g>
+        <g transform="translate(22,136)">
+          <rect width="396" height="44" rx="10" fill="#0f2236" stroke="#ffd166" stroke-opacity="0.35"/>
+          <circle cx="18" cy="22" r="4" fill="#ffd166"/>
+          <text x="34" y="20" font-weight="600" fill="#e2e8f0">Authentication</text>
+          <text x="34" y="36" font-size="12" fill="#94a3b8">Argon2id · TOTP (replay-safe) · OIDC · hashed sessions</text>
+        </g>
+        <g transform="translate(22,188)">
+          <rect width="396" height="44" rx="10" fill="#0f2236" stroke="#c084fc" stroke-opacity="0.35"/>
+          <circle cx="18" cy="22" r="4" fill="#c084fc"/>
+          <text x="34" y="20" font-weight="600" fill="#e2e8f0">RBAC</text>
+          <text x="34" y="36" font-size="12" fill="#94a3b8">viewer · operator · admin — root-equivalent = admin only</text>
+        </g>
+        <g transform="translate(22,240)">
+          <rect width="396" height="44" rx="10" fill="#0f2236" stroke="#00DC82" stroke-opacity="0.45"/>
+          <circle cx="18" cy="22" r="4" fill="#00DC82"/>
+          <text x="34" y="20" font-weight="600" fill="#e2e8f0">Typed allowlist</text>
+          <text x="34" y="36" font-size="12" fill="#94a3b8">regex-validated input → argv slices, never a shell</text>
+        </g>
+        <g transform="translate(22,292)">
+          <rect width="396" height="44" rx="10" fill="#0f2236" stroke="#fb7185" stroke-opacity="0.35"/>
+          <circle cx="18" cy="22" r="4" fill="#fb7185"/>
+          <text x="34" y="20" font-weight="600" fill="#e2e8f0">Safety checks</text>
+          <text x="34" y="36" font-size="12" fill="#94a3b8">package dry runs · container host-escape · own crontab</text>
+        </g>
+      </g>
+      <g transform="translate(22,348)">
+        <rect width="396" height="34" rx="10" fill="#0a1020" stroke="#1e293b"/>
+        <circle cx="18" cy="17" r="4" fill="#c084fc"/>
+        <text x="32" y="22" font-size="13" fill="#cbd5e1">Audit log (SQLite) — who · what · target · outcome · IP</text>
+      </g>
+    </g>
+
+    <!-- arrows out -->
+    <path d="M828 318 L 870 318" fill="none" stroke="#22d3ee" stroke-width="2" marker-end="url(#arrow)"/>
+
+    <!-- Host -->
+    <g transform="translate(880,118)">
+      <rect width="272" height="400" rx="18" fill="#0a1020" stroke="#1e293b"/>
+      <text x="22" y="40" font-size="17" font-weight="600" fill="#e2e8f0">Linux host</text>
+      <text x="22" y="60" font-size="13" fill="#94a3b8">Debian · Ubuntu · Fedora · Armbian</text>
+      <g font-size="13" fill="#cbd5e1" font-family="JetBrains Mono, ui-monospace, monospace">
+        <g transform="translate(22,88)">
+          <text y="0"><tspan fill="#00DC82">●</tspan> systemd <tspan fill="#64748b">D-Bus</tspan></text>
+          <text y="28"><tspan fill="#00DC82">●</tspan> docker.sock <tspan fill="#64748b">+ compose</tspan></text>
+          <text y="56"><tspan fill="#00DC82">●</tspan> apt / dnf <tspan fill="#64748b">dry run</tspan></text>
+          <text y="84"><tspan fill="#00DC82">●</tspan> ufw</text>
+          <text y="112"><tspan fill="#00DC82">●</tspan> nmcli · hostnamectl</text>
+          <text y="140"><tspan fill="#00DC82">●</tspan> wg</text>
+          <text y="168"><tspan fill="#00DC82">●</tspan> crontab</text>
+          <text y="196"><tspan fill="#00DC82">●</tspan> useradd · authorized_keys</text>
+          <text y="224"><tspan fill="#00DC82">●</tspan> files <tspan fill="#64748b">(admin)</tspan></text>
+          <text y="252"><tspan fill="#00DC82">●</tspan> PTY <tspan fill="#64748b">as mapped user</tspan></text>
+        </g>
+      </g>
+    </g>
+  </g>
+</svg>

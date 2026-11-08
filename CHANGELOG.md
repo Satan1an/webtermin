@@ -15,6 +15,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Package safety checks, enforced server-side: never remove core/essential packages, the running kernel, webtermin itself, bootloader/board packages or the active network stack; refuse installs with < 500 MB free; removals must be explicitly confirmed; installs run with `--no-remove`; warn before NetworkManager takes over a networkd/ifupdown/netplan host.
 - Package operations are serialised, wait for the dpkg lock, keep existing config files (`--force-confold`) and are detached from the HTTP request so a closed tab cannot kill dpkg mid-install.
 
+### Fixed
+- Docker container list no longer shows each published port twice (IPv4 + IPv6 bindings).
+- Audit entries for blocked package operations now record the reason.
+
+### Docs
+- README: fresh 0.10 screenshots, architecture / roles / package-safety diagrams, setup-token step, install snippet picks the latest release.
+
 ## [0.10.0] — 2026-11-08
 
 ### Security

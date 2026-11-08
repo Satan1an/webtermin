@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 520" role="img" aria-label="Role model: viewer reads, operator runs day-to-day operations without root-equivalent power, admin holds everything that equals root on the host">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0b1220"/>
+      <stop offset="100%" stop-color="#0a1530"/>
+    </linearGradient>
+    <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse">
+      <circle cx="1" cy="1" r="1" fill="#1f2a44" opacity="0.55"/>
+    </pattern>
+    <linearGradient id="admin" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b1d2a"/>
+      <stop offset="100%" stop-color="#1c1428"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="520" rx="18" fill="url(#bg)"/>
+  <rect width="1200" height="520" rx="18" fill="url(#grid)"/>
+
+  <g font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif">
+    <text x="48" y="58" font-size="26" font-weight="700" fill="#f1f5f9" letter-spacing="-0.5">Where root begins</text>
+    <text x="48" y="84" font-size="15" fill="#94a3b8">The panel runs as root, so the line is drawn where an action would hand out root. Each role includes the one to its left.</text>
+
+    <!-- viewer -->
+    <g transform="translate(48,120)">
+      <rect width="330" height="330" rx="16" fill="#0d1a2e" stroke="#22d3ee" stroke-opacity="0.45"/>
+      <rect x="22" y="22" width="78" height="26" rx="13" fill="#0f2236" stroke="#22d3ee" stroke-opacity="0.6"/>
+      <text x="61" y="40" font-size="13" font-weight="600" fill="#22d3ee" text-anchor="middle">viewer</text>
+      <text x="22" y="80" font-size="17" font-weight="600" fill="#e2e8f0">Looks</text>
+      <g font-size="14" fill="#cbd5e1">
+        <text x="22" y="114"><tspan fill="#22d3ee">✓</tspan>  Live metrics, disks, system info</text>
+        <text x="22" y="142"><tspan fill="#22d3ee">✓</tspan>  Service and container lists</text>
+        <text x="22" y="170"><tspan fill="#22d3ee">✓</tspan>  Stack names and status</text>
+        <text x="22" y="198"><tspan fill="#22d3ee">✓</tspan>  Package search</text>
+      </g>
+      <g font-size="13" fill="#64748b">
+        <text x="22" y="246">No logs, journals, compose files,</text>
+        <text x="22" y="266">crontabs or inspect output —</text>
+        <text x="22" y="286">those can carry secrets.</text>
+      </g>
+    </g>
+
+    <!-- operator -->
+    <g transform="translate(400,120)">
+      <rect width="330" height="330" rx="16" fill="#0d1a2e" stroke="#00DC82" stroke-opacity="0.5"/>
+      <rect x="22" y="22" width="92" height="26" rx="13" fill="#0f2236" stroke="#00DC82" stroke-opacity="0.6"/>
+      <text x="68" y="40" font-size="13" font-weight="600" fill="#00DC82" text-anchor="middle">operator</text>
+      <text x="22" y="80" font-size="17" font-weight="600" fill="#e2e8f0">Operates</text>
+      <g font-size="14" fill="#cbd5e1">
+        <text x="22" y="114"><tspan fill="#00DC82">✓</tspan>  Start / stop / restart services</text>
+        <text x="22" y="142"><tspan fill="#00DC82">✓</tspan>  Containers and stacks, logs, exec</text>
+        <text x="22" y="170"><tspan fill="#00DC82">✓</tspan>  Own crontab (non-root)</text>
+        <text x="22" y="198"><tspan fill="#00DC82">✓</tspan>  Terminal as own Linux account</text>
+      </g>
+      <g font-size="13" fill="#64748b">
+        <text x="22" y="246">Refused: privileged or host-network</text>
+        <text x="22" y="266">containers, bind mounts, exec into</text>
+        <text x="22" y="286">them, root's crontab, uid-0 shells.</text>
+      </g>
+    </g>
+
+    <!-- boundary -->
+    <g transform="translate(765,104)">
+      <line x1="0" y1="0" x2="0" y2="362" stroke="#fb7185" stroke-width="2" stroke-dasharray="7 6"/>
+      <rect x="-15" y="146" width="30" height="72" rx="15" fill="#2a1420" stroke="#fb7185"/>
+      <text x="0" y="182" font-size="12" font-weight="700" fill="#fb7185" text-anchor="middle" transform="rotate(-90 0 182)">ROOT</text>
+    </g>
+
+    <!-- admin -->
+    <g transform="translate(800,120)">
+      <rect width="352" height="330" rx="16" fill="url(#admin)" stroke="#fb7185" stroke-opacity="0.55"/>
+      <rect x="22" y="22" width="76" height="26" rx="13" fill="#2a1420" stroke="#fb7185" stroke-opacity="0.7"/>
+      <text x="60" y="40" font-size="13" font-weight="600" fill="#fb7185" text-anchor="middle">admin</text>
+      <text x="22" y="80" font-size="17" font-weight="600" fill="#e2e8f0">Equals root</text>
+      <g font-size="14" fill="#cbd5e1">
+        <text x="22" y="114"><tspan fill="#fb7185">✓</tspan>  Files, packages, firewall, network</text>
+        <text x="22" y="142"><tspan fill="#fb7185">✓</tspan>  Linux users and SSH keys, WireGuard</text>
+        <text x="22" y="170"><tspan fill="#fb7185">✓</tspan>  Host-escape containers, root shell</text>
+        <text x="22" y="198"><tspan fill="#fb7185">✓</tspan>  Panel users, audit log, backups</text>
+      </g>
+      <g font-size="13" fill="#94a3b8">
+        <text x="22" y="246">Give it to people you would give</text>
+        <text x="22" y="266"><tspan font-family="JetBrains Mono, ui-monospace, monospace">sudo</tspan> to. Pair with TOTP or OIDC.</text>
+      </g>
+    </g>
+
+    <text x="48" y="490" font-size="13" fill="#64748b">Enforced on the server for every route; the UI only hides what the API already refuses. API tokens carry a role of their own.</text>
+  </g>
+</svg>

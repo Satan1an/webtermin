@@ -22,10 +22,11 @@
 
 | | |
 |---|---|
-| ⚡ **Один бинарник** | Статический Go-исполняемый файл (~14 МБ) с встроенной React-SPA через `go:embed`. Без runtime, без отдельного веб-сервера для статики. Один и тот же бинарник в `.deb` / `.rpm` / `.apk` / Docker. |
+| ⚡ **Один бинарник** | Статический Go-исполняемый файл (~14 МБ) с встроенной React-SPA через `go:embed`. Без runtime, без отдельного веб-сервера для статики. Один и тот же бинарник в `.deb` / `.rpm` / `.apk`. |
 | 🔐 **Безопасность в основе** | TLS по умолчанию · Argon2id · HttpOnly/Secure/Strict cookies · CSRF-токены · строгий CSP · rate-limit + lockout · опциональная TOTP 2FA · RBAC (viewer / operator / admin) · API-токены со scope'ами · OIDC SSO. |
+| 📦 **Не убьёт систему** | Установка пакетов — сначала пробный прогон, проверки и подтверждение. Ключевые пакеты, работающее ядро, загрузчик и активный сетевой стек не удаляются никогда — [как это устроено](#безопасность-пакетов). |
 | 📜 **Аудит-лог** | Каждое изменяющее действие записывается в SQLite — кто, что, когда, цель, результат, IP. Доступен в UI на странице `/audit`. |
-| 🧩 **13 модулей** | См. [docs/modules.md](docs/modules.md). Systemd · Docker (Portainer-grade) · Compose stacks · cron · Linux-пользователи + SSH-ключи · файлы (Monaco) · PTY-терминал · пакеты (apt/dnf) · firewall (ufw) · сеть (nmcli) · WireGuard · бэкапы · юзеры и токены панели. |
+| 🧩 **13 модулей** | См. [docs/modules.md](docs/modules.md). Systemd · Docker (Portainer-grade) · Compose stacks · cron · Linux-пользователи + SSH-ключи · файлы (Monaco) · PTY-терминал · пакеты (apt/dnf, пробный прогон) · firewall (ufw) · сеть (nmcli) · WireGuard · бэкапы · юзеры и токены панели. |
 | 🎨 **Современный UI** | React + Tailwind + shadcn/Radix · recharts · Framer Motion · тёмная тема по умолчанию · адаптивный. |
 | 🏗️ **ARM-ready** | Кросс-компиляция под `linux/amd64` и `linux/arm64` (OrangePi, Raspberry Pi 4/5, ARM cloud VMs). |
 | 📚 **Документировано** | Per-module reference, полный API, OIDC + non-root walkthrough'и, гайд для контрибьюторов — всё в [`docs/`](docs/). |
@@ -33,21 +34,33 @@
 ## Скриншоты
 
 <p align="center">
-  <img src="docs/images/dashboard.png" alt="Дашборд с живыми метриками CPU, памяти и сети" />
+  <img src="docs/images/dashboard.png" alt="Дашборд с живыми графиками CPU, памяти и сети" />
 </p>
 
 <table>
 <tr>
-<td width="33%"><img src="docs/images/services.png" alt="Сервисы systemd" /></td>
-<td width="33%"><img src="docs/images/stacks.png" alt="Docker Compose стеки" /></td>
-<td width="33%"><img src="docs/images/terminal.png" alt="Веб-терминал" /></td>
+<td width="50%"><img src="docs/images/docker.png" alt="Docker-контейнеры с действиями" /><br><sub><b>Docker</b> — контейнеры, образы, сети, тома, exec, логи</sub></td>
+<td width="50%"><img src="docs/images/terminal.png" alt="Веб-терминал" /><br><sub><b>Терминал</b> — PTY через WebSocket, от сопоставленного Linux-пользователя</sub></td>
 </tr>
 <tr>
-<td><img src="docs/images/cron.png" alt="Cron-задачи по пользователям" /></td>
-<td><img src="docs/images/users.png" alt="Управление Linux-пользователями" /></td>
-<td><img src="docs/images/firewall.png" alt="Firewall — аккуратное empty-state когда ufw не установлен" /></td>
+<td><img src="docs/images/packages.png" alt="Диалог пробного прогона с предупреждением, что NetworkManager может перехватить сеть" /><br><sub><b>Пакеты</b> — любая установка сначала прогоняется вхолостую</sub></td>
+<td><img src="docs/images/firewall.png" alt="Правила ufw" /><br><sub><b>Firewall</b> — статус и правила ufw</sub></td>
+</tr>
+<tr>
+<td><img src="docs/images/stacks.png" alt="Docker Compose стеки" /><br><sub><b>Стеки</b> — деплой через Compose</sub></td>
+<td><img src="docs/images/audit.png" alt="Аудит-лог с заблокированным удалением пакета" /><br><sub><b>Аудит</b> — все действия, включая отклонённые</sub></td>
+</tr>
+<tr>
+<td><img src="docs/images/cron.png" alt="Cron-задачи root" /><br><sub><b>Cron</b> — crontab по пользователям</sub></td>
+<td><img src="docs/images/users.png" alt="Linux-пользователи" /><br><sub><b>Пользователи</b> — Linux-аккаунты и SSH-ключи</sub></td>
 </tr>
 </table>
+
+## Как это устроено
+
+<p align="center">
+  <img src="docs/architecture.svg" alt="Браузер или API-клиент обращается по HTTPS к бинарнику webtermin; каждый запрос проходит edge, аутентификацию, RBAC, типизированный allowlist и проверки безопасности, прежде чем дойти до systemd, Docker, apt, ufw, nmcli, WireGuard, cron, пользователей, файлов или PTY" width="100%">
+</p>
 
 ## Установка
 
@@ -56,9 +69,9 @@
 Скачайте пакет под свою архитектуру из [последнего релиза](https://github.com/Satan1an/webtermin/releases/latest):
 
 ```bash
-# Замените VERSION на номер версии (например, 0.1.0).
-# ARCH определится автоматически: amd64 или arm64.
-VERSION=0.1.0
+# Тег последнего релиза; ARCH определится автоматически: amd64 или arm64.
+VERSION=$(curl -fsSL https://api.github.com/repos/Satan1an/webtermin/releases/latest \
+  | sed -n 's/.*"tag_name": *"v\([^"]*\)".*/\1/p')
 ARCH=$(dpkg --print-architecture)
 curl -fsSL -o webtermin.deb \
   "https://github.com/Satan1an/webtermin/releases/download/v${VERSION}/webtermin_${VERSION}_linux_${ARCH}.deb"
@@ -67,7 +80,11 @@ sudo apt install ./webtermin.deb
 
 Пакет установит `webtermin` в `/usr/bin/`, положит systemd-юнит в `/lib/systemd/system/webtermin.service`, создаст `/var/lib/webtermin` для данных и `/etc/webtermin/config.yaml` как conffile (ваши правки сохраняются при обновлении) и запустит сервис.
 
-Откройте **`https://<хост>:8443`** чтобы пройти первоначальную настройку.
+Откройте **`https://<хост>:8443`**, чтобы пройти первоначальную настройку. Страница настройки попросит одноразовый **setup-токен** — чтобы свежую установку не успел занять кто-то другой. Токен пишется в журнал:
+
+```bash
+sudo journalctl -u webtermin | grep setup_token
+```
 
 ### Почему нет Docker-образа?
 
@@ -111,16 +128,31 @@ make build-arm64   # кросс-компиляция aarch64 (OrangePi / RPi)
 ## Модель безопасности
 
 - **Транспорт** — только HTTPS, TLS 1.2+, HSTS 2 года, X-Frame-Options DENY, строгий Content-Security-Policy.
-- **Аутентификация** — Argon2id (64 МиБ, t=2, p=2). Session ID 256-битный, случайный, в HttpOnly + Secure + SameSite=Strict cookie. CSRF-токен обязателен на каждом изменяющем запросе. Опциональная TOTP 2FA на пользователя. Rate-limit + lockout при неудачных входах. RBAC с тремя иерархическими ролями. API-токены со scope'ами фиксируемыми на момент выпуска. Опциональный OIDC SSO.
+- **Аутентификация** — Argon2id (64 МиБ, t=2, p=2). Session ID 256-битный, случайный, в HttpOnly + Secure + SameSite=Strict cookie, в базе хранится только SHA-256 хэш. TOTP-код нельзя использовать повторно. Первичная настройка требует одноразовый токен из журнала. CSRF-токен обязателен на каждом изменяющем запросе. Опциональная TOTP 2FA на пользователя. Rate-limit + lockout при неудачных входах. RBAC с тремя иерархическими ролями. API-токены со scope'ами фиксируемыми на момент выпуска. Опциональный OIDC SSO.
 - **Системные действия** — каждое действие живёт за типизированным allowlist'ом. Имена юнитов сверяются с `^[A-Za-z0-9@_.\-:\\]+\.(service|socket|...)$`, имена пользователей — с `^[a-z_][a-z0-9_-]{0,31}$`, пути файлов должны быть абсолютными, очищенными, без `..`. **Никаких shell-строк, собранных из пользовательского ввода** — `useradd`, `chpasswd`, `journalctl`, `ufw`, `wg`, `nmcli`, `apt-get` и т.п. вызываются через argv-слайс в `os/exec`.
+- **Пакеты** — пробный прогон, проверки и явное подтверждение до запуска; см. [Безопасность пакетов](#безопасность-пакетов).
 - **Аудит** — каждое изменяющее действие пишется в `audit_log` (пользователь, IP, действие, цель, результат, детали). Доступен в UI на `/audit`.
 - **Процесс** — по умолчанию работает от root; для least-privilege деплоя см. [docs/non-root-setup.md](docs/non-root-setup.md). Hardening systemd-юнита: `ProtectKernelTunables=true`, `ProtectKernelModules=true`.
+
+### Роли
+
+<p align="center">
+  <img src="docs/roles.svg" alt="viewer смотрит, operator обслуживает без root-эквивалентных прав, admin равен root" width="100%">
+</p>
+
+### Безопасность пакетов
+
+<p align="center">
+  <img src="docs/package-safety.svg" alt="Пробный прогон, блокировка опасных удалений, предупреждения, подтверждение плана, защищённый запуск, аудит" width="100%">
+</p>
 
 ### История аудитов
 
 Перед тегированием v0.1.0 (16.05.2026) был проведён ручной review + `govulncheck`: аудит `exec.Command` argv, параметризации SQL, режимов файлов, атрибутов cookie; глубокий разбор auth, CSRF, WebSocket origin, безопасности путей и выполнения команд. Результаты и by-design трейд-оффы — в [SECURITY.ru.md](SECURITY.ru.md#пре-релизный-аудит-v010--2026-05-16).
 
-Каждый последующий релиз (v0.2 → v0.9) добавлял unit-тесты для валидаторов новых модулей; `go test -race`, `staticcheck`, `gosec` (HIGH), `govulncheck` и `gitleaks` гоняются на каждом CI-билде.
+Каждый последующий релиз (v0.2 → v0.9) добавлял unit-тесты для валидаторов новых модулей. Второе полное ревью перед v0.10.0 (08.11.2026) закрыло захват первичной настройки, хранение сессий, повтор TOTP, root-эквивалентность в RBAC и выход контейнеров на хост — см. [SECURITY.ru.md](SECURITY.ru.md#ревью-безопасности-2026-11-08).
+
+`go test -race`, `staticcheck`, `gosec` (HIGH), `govulncheck` и `gitleaks` гоняются на каждом CI-билде и раз в неделю.
 
 Нашли уязвимость? См. [SECURITY.ru.md](SECURITY.ru.md).
 
@@ -150,6 +182,7 @@ make build-arm64   # кросс-компиляция aarch64 (OrangePi / RPi)
 - ✅ Non-root режим (sudoers + docker-группа)
 - ✅ `.deb` / `.rpm` / `.apk` пакеты
 - ✅ Русскоязычные README + SECURITY
+- ✅ v0.10: исправления по ревью безопасности, установка недостающих утилит в один клик, проверки безопасности пакетов
 
 Идеи post-1.0 (когда наберём пользовательский feedback):
 
