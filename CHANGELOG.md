@@ -29,6 +29,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Go toolchain raised to ≥ 1.26 (1.25 is out of support) and dependencies
   updated, clearing 16 of 17 known module CVEs (none reachable from our code);
   CI builds with the newest stable Go and runs weekly.
+- Frontend dependencies updated; DOMPurify (bundled by Monaco, which still
+  pins a vulnerable 3.4.15) is overridden to 3.4.17 — fixes several XSS
+  advisories. Remaining: React Router 6 open-redirect advisory, not reachable
+  (the app only navigates to fixed paths); the v7 migration is tracked
+  separately.
 
 See the 2026-11-08 review in [SECURITY.md](SECURITY.md).
 
