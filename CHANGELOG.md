@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Network, Firewall and WireGuard pages offer a one-click install of the missing tool (`network-manager`, `ufw`, `wireguard-tools`) for admins; no restart needed.
+- Package operations show a dry-run plan (install/upgrade/remove) before running; `POST /api/packages/plan`.
+
+### Security
+- Package safety checks, enforced server-side: never remove core/essential packages, the running kernel, webtermin itself, bootloader/board packages or the active network stack; refuse installs with < 500 MB free; removals must be explicitly confirmed; installs run with `--no-remove`; warn before NetworkManager takes over a networkd/ifupdown/netplan host.
+- Package operations are serialised, wait for the dpkg lock, keep existing config files (`--force-confold`) and are detached from the HTTP request so a closed tab cannot kill dpkg mid-install.
+
 ## [0.10.0] — 2026-11-08
 
 ### Security

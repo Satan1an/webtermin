@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { api, ApiError } from "@/lib/api";
 import { toast } from "@/components/ui/toast";
+import { MissingTool } from "@/components/MissingTool";
 
 interface Iface {
   name: string;
@@ -64,15 +65,13 @@ export function NetworkPage() {
   if (available === null) return <div className="text-sm text-muted-foreground">Loading…</div>;
   if (!available) {
     return (
-      <Card>
-        <CardContent className="p-6">
-          <NetIcon className="h-6 w-6 text-muted-foreground mb-3" />
-          <strong>NetworkManager not installed.</strong>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Install with <code>sudo apt install network-manager</code> (or <code>NetworkManager</code> on Fedora/RHEL) and restart webtermin.
-          </p>
-        </CardContent>
-      </Card>
+      <MissingTool
+        icon={NetIcon}
+        title="NetworkManager not installed."
+        apt="network-manager"
+        dnf="NetworkManager"
+        onInstalled={load}
+      />
     );
   }
 

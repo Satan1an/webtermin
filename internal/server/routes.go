@@ -162,6 +162,7 @@ func (s *Server) routes() http.Handler {
 	authed.HandleFunc("GET /api/packages/status", s.handlePackagesStatus)
 	authed.HandleFunc("GET /api/packages/search", s.handlePackagesSearch)
 	authed.HandleFunc("GET /api/packages/installed", s.protected(auth.RoleOperator, s.handlePackagesInstalled))
+	authed.HandleFunc("POST /api/packages/plan", s.protected(auth.RoleAdmin, s.handlePackagesPlan))
 	authed.HandleFunc("POST /api/packages/install", s.protected(auth.RoleAdmin, s.handlePackagesInstall))
 	authed.HandleFunc("POST /api/packages/remove", s.protected(auth.RoleAdmin, s.handlePackagesRemove))
 	authed.HandleFunc("POST /api/packages/upgrade", s.protected(auth.RoleAdmin, s.handlePackagesUpgrade))

@@ -81,25 +81,10 @@ func ListInstalled(ctx context.Context) ([]Package, error) {
 	return nil, errors.New("no supported package manager found")
 }
 
-// Install performs a non-interactive install of one or more named packages.
-// Names are revalidated here even though the HTTP layer does the same — this
-// is the last line before exec.
-func Install(ctx context.Context, names ...string) error {
-	return run(ctx, "install", names...)
-}
-
-func Remove(ctx context.Context, names ...string) error {
-	return run(ctx, "remove", names...)
-}
-
-func Upgrade(ctx context.Context, names ...string) error {
-	if len(names) == 0 {
-		return run(ctx, "upgrade-all")
-	}
-	return run(ctx, "upgrade", names...)
-}
-
-func run(ctx context.Context, op string, names ...string) error {
+// run executes the real command. Callers go through Execute, which plans and
+// checks first. allowRemove=false adds apt's --no-remove, so an install that
+// would drag removals in aborts instead of trusting the earlier dry run.
+func run(ctx context.Context, op string, allowRemove bool, names ...string) error {
 	for _, n := range names {
 		if !ValidName(n) {
 			return fmt.Errorf("invalid package name %q", n)
@@ -108,7 +93,12 @@ func run(ctx context.Context, op string, names ...string) error {
 	var args []string
 	switch Detect() {
 	case APT:
-		base := []string{"-y", "-q", "-o", "Dpkg::Options::=--force-confdef"}
+		base := []string{"-y", "-q",
+			"-o", "Dpkg::Options::=--force-confdef", "-o", "Dpkg::Options::=--force-confold",
+			"-o", "DPkg::Lock::Timeout=120"}
+		if !allowRemove && op != "remove" {
+			base = append(base, "--no-remove")
+		}
 		switch op {
 		case "install":
 			args = append([]string{"install"}, append(base, names...)...)

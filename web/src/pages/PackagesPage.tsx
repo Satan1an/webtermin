@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { api, ApiError } from "@/lib/api";
 import { toast } from "@/components/ui/toast";
 import { useIsAdmin } from "@/store/auth";
+import { usePackageOp } from "@/components/PackageOpDialog";
 
 interface Pkg {
   name: string;
@@ -22,7 +23,8 @@ export function PackagesPage() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Pkg[]>([]);
   const [installed, setInstalled] = useState<Pkg[]>([]);
-  const [busy, setBusy] = useState<string | null>(null);
+  const pkgOp = usePackageOp();
+  const busy = pkgOp.busy;
 
   useEffect(() => {
     void api.get<{ manager: string }>("/api/packages/status").then((s) => setManager(s.manager));
@@ -47,20 +49,13 @@ export function PackagesPage() {
     }
   };
 
-  const op = async (name: string, action: "install" | "remove" | "upgrade") => {
-    if (!confirm(`${action} package "${name}"?`)) return;
-    setBusy(name + action);
-    try {
-      await api.post(`/api/packages/${action}`, { names: [name] });
-      toast.success(`${action} ✓`, name);
-      await loadInstalled();
-      if (tab === "search") await search();
-    } catch (e) {
-      if (e instanceof ApiError) toast.error(`${action} failed`, e.message);
-    } finally {
-      setBusy(null);
-    }
-  };
+  const op = (name: string, action: "install" | "remove") =>
+    pkgOp.start(action, [name], {
+      onDone: async () => {
+        await loadInstalled();
+        if (tab === "search") await search();
+      },
+    });
 
   if (!manager) {
     return (
@@ -150,6 +145,7 @@ export function PackagesPage() {
           </div>
         </CardContent>
       </Card>
+      {pkgOp.dialog}
     </div>
   );
 }

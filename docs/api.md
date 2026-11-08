@@ -149,9 +149,18 @@ Lists are open to any authed user; inspect, logs and lifecycle are operator+. Se
 | GET    | `/packages/status`                | any     | `{manager: "apt"\|"dnf"\|""}` |
 | GET    | `/packages/search?q=<query>`      | any     | |
 | GET    | `/packages/installed`             | operator| |
-| POST   | `/packages/install`               | admin   | `{names: [...]}` |
+| POST   | `/packages/plan`                  | admin   | `{op, names}` → dry run: `{install, upgrade, remove, blocked, warnings}` |
+| POST   | `/packages/install`               | admin   | `{names: [...], confirm_remove: [...]}` |
 | POST   | `/packages/remove`                | admin   | |
 | POST   | `/packages/upgrade`               | admin   | Empty `names` upgrades all. |
+
+Install/remove/upgrade re-run the dry run server-side before executing:
+`403` if a safety rule blocks it (core/essential packages, running kernel,
+webtermin itself, bootloader, the active network stack, < 500 MB free under
+`/var`), `409` if it would remove anything not listed in `confirm_remove` or
+another package operation is running. The response carries the `plan`. Once
+started, the run is detached from the HTTP request so a closed tab cannot
+kill dpkg half way.
 
 ## Firewall (ufw)
 

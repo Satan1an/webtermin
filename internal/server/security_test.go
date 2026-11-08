@@ -191,3 +191,14 @@ func TestTerminalAccount(t *testing.T) {
 		}
 	}
 }
+
+func TestRBAC_PackagePlanIsAdminOnly(t *testing.T) {
+	srv, h := newTestServer(t)
+	cookie, csrf := loginAs(t, srv, h, "op1", "operator")
+	res := doJSON(t, h, http.MethodPost, "/api/packages/plan",
+		map[string]any{"op": "install", "names": []string{"ufw"}},
+		map[string]string{auth.CSRFHeaderName: csrf}, []*http.Cookie{cookie})
+	if res.StatusCode != http.StatusForbidden {
+		t.Fatalf("operator plan should 403, got %d", res.StatusCode)
+	}
+}

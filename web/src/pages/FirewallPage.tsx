@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { api, ApiError } from "@/lib/api";
 import { toast } from "@/components/ui/toast";
+import { MissingTool } from "@/components/MissingTool";
 
 interface Status {
   available: boolean;
@@ -86,17 +87,7 @@ export function FirewallPage() {
   }
 
   if (!status.available) {
-    return (
-      <Card>
-        <CardContent className="p-6 text-sm">
-          <ShieldOff className="h-6 w-6 text-muted-foreground mb-3" />
-          <strong>ufw is not installed.</strong>
-          <p className="mt-2 text-muted-foreground">
-            Install it with <code className="rounded bg-muted px-1.5 py-0.5">sudo apt install ufw</code> and refresh this page.
-          </p>
-        </CardContent>
-      </Card>
-    );
+    return <MissingTool icon={ShieldOff} title="ufw is not installed." apt="ufw" dnf="ufw" onInstalled={load} />;
   }
 
   return (

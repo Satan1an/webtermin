@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { api, ApiError } from "@/lib/api";
 import { toast } from "@/components/ui/toast";
+import { MissingTool } from "@/components/MissingTool";
 import { formatBytes } from "@/lib/utils";
 
 interface Peer {
@@ -60,15 +61,13 @@ export function WireGuardPage() {
   if (!status) return <div className="text-sm text-muted-foreground">Loading…</div>;
   if (!status.available) {
     return (
-      <Card>
-        <CardContent className="p-6">
-          <Radio className="h-6 w-6 text-muted-foreground mb-3" />
-          <strong>WireGuard tools not installed.</strong>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Install with <code>sudo apt install wireguard</code> (or your distro's equivalent) and refresh.
-          </p>
-        </CardContent>
-      </Card>
+      <MissingTool
+        icon={Radio}
+        title="WireGuard tools not installed."
+        apt="wireguard-tools"
+        dnf="wireguard-tools"
+        onInstalled={load}
+      />
     );
   }
 

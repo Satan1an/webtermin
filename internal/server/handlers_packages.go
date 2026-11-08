@@ -2,6 +2,8 @@ package server
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -38,7 +40,54 @@ func (s *Server) handlePackagesInstalled(w http.ResponseWriter, r *http.Request)
 }
 
 type pkgOpReq struct {
+	Op    string   `json:"op,omitempty"` // plan only
 	Names []string `json:"names"`
+	// ConfirmRemove lists the removals the admin saw in the plan and accepted.
+	// Anything the real run would remove beyond this aborts the operation.
+	ConfirmRemove []string `json:"confirm_remove,omitempty"`
+}
+
+type pkgOpError struct {
+	Error string         `json:"error"`
+	Plan  *packages.Plan `json:"plan,omitempty"`
+}
+
+func decodePkgReq(w http.ResponseWriter, r *http.Request) (*pkgOpReq, bool) {
+	var req pkgOpReq
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSONError(w, 400, "bad request")
+		return nil, false
+	}
+	for _, n := range req.Names {
+		if !packages.ValidName(n) {
+			writeJSONError(w, 400, "invalid package name: "+n)
+			return nil, false
+		}
+	}
+	return &req, true
+}
+
+// handlePackagesPlan dry-runs an operation so the UI can show exactly what
+// would be installed, upgraded and removed before the admin confirms.
+func (s *Server) handlePackagesPlan(w http.ResponseWriter, r *http.Request) {
+	req, ok := decodePkgReq(w, r)
+	if !ok {
+		return
+	}
+	if req.Op != "install" && req.Op != "remove" && req.Op != "upgrade" {
+		writeJSONError(w, 400, "op must be install, remove or upgrade")
+		return
+	}
+	if req.Op != "upgrade" && len(req.Names) == 0 {
+		writeJSONError(w, 400, "names required")
+		return
+	}
+	p, err := packages.MakePlan(r.Context(), req.Op, req.Names...)
+	if err != nil {
+		writeJSONError(w, 500, err.Error())
+		return
+	}
+	writeJSON(w, 200, p)
 }
 
 func (s *Server) handlePackagesInstall(w http.ResponseWriter, r *http.Request) {
@@ -54,34 +103,38 @@ func (s *Server) handlePackagesUpgrade(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) runPackagesOp(w http.ResponseWriter, r *http.Request, op string) {
-	var req pkgOpReq
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeJSONError(w, 400, "bad request")
+	req, ok := decodePkgReq(w, r)
+	if !ok {
 		return
 	}
-	for _, n := range req.Names {
-		if !packages.ValidName(n) {
-			writeJSONError(w, 400, "invalid package name: "+n)
-			return
-		}
-	}
-	var err error
-	switch op {
-	case "install":
-		err = packages.Install(r.Context(), req.Names...)
-	case "remove":
-		err = packages.Remove(r.Context(), req.Names...)
-	case "upgrade":
-		err = packages.Upgrade(r.Context(), req.Names...)
+	if op != "upgrade" && len(req.Names) == 0 {
+		writeJSONError(w, 400, "names required")
+		return
 	}
 	target := strings.Join(req.Names, ",")
+	p, err := packages.Execute(r.Context(), op, req.Names, req.ConfirmRemove)
 	if err != nil {
 		s.auditPkg(r, "pkg."+op, target, audit.OutcomeError, err.Error())
-		writeJSONError(w, 500, err.Error())
+		status := 500
+		switch {
+		case errors.Is(err, packages.ErrBusy), errors.Is(err, packages.ErrNeedsConfirm):
+			status = 409
+		case errors.Is(err, packages.ErrBlocked):
+			status = 403
+			if len(p.Blocked) > 0 {
+				b := p.Blocked[0]
+				err = fmt.Errorf("%w: %s", err, strings.TrimPrefix(b.Name+": "+b.Reason, ": "))
+			}
+		}
+		writeJSON(w, status, pkgOpError{Error: err.Error(), Plan: p})
 		return
 	}
-	s.auditPkg(r, "pkg."+op, target, audit.OutcomeOK, "")
-	writeJSON(w, 200, map[string]bool{"ok": true})
+	detail := ""
+	if len(p.Remove) > 0 {
+		detail = "removed: " + strings.Join(p.Remove, ",")
+	}
+	s.auditPkg(r, "pkg."+op, target, audit.OutcomeOK, detail)
+	writeJSON(w, 200, map[string]any{"ok": true, "plan": p})
 }
 
 func (s *Server) auditPkg(r *http.Request, action, target, outcome, detail string) {
