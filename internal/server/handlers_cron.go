@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/json"
 	"net/http"
+	osuser "os/user"
 	"strconv"
 
 	"github.com/Satan1an/webtermin/internal/audit"
@@ -15,6 +16,9 @@ func (s *Server) handleCronList(w http.ResponseWriter, r *http.Request) {
 	user := r.PathValue("user")
 	if !users.ValidName(user) {
 		writeJSONError(w, 400, "invalid user")
+		return
+	}
+	if s.denyForeignCrontab(w, r, user) {
 		return
 	}
 	entries, err := cron.List(user)
@@ -35,6 +39,9 @@ func (s *Server) handleCronAdd(w http.ResponseWriter, r *http.Request) {
 	user := r.PathValue("user")
 	if !users.ValidName(user) {
 		writeJSONError(w, 400, "invalid user")
+		return
+	}
+	if s.denyForeignCrontab(w, r, user) {
 		return
 	}
 	var req cronAddReq
@@ -58,6 +65,9 @@ func (s *Server) handleCronDelete(w http.ResponseWriter, r *http.Request) {
 		writeJSONError(w, 400, "invalid user")
 		return
 	}
+	if s.denyForeignCrontab(w, r, user) {
+		return
+	}
 	lineNo, err := strconv.Atoi(r.PathValue("line"))
 	if err != nil || lineNo <= 0 {
 		writeJSONError(w, 400, "invalid line number")
@@ -79,4 +89,22 @@ func (s *Server) auditCron(r *http.Request, action, target, outcome, detail stri
 		UserID: &uid, Username: u.Username, IP: auth.ClientIP(r),
 		Action: action, Target: target, Outcome: outcome, Detail: detail,
 	})
+}
+
+// denyForeignCrontab: crontab entries run as their owner, so another user's
+// crontab (and root's in particular) is admin-only. Operators manage only the
+// crontab of their own same-named, non-root Linux account. Returns true when
+// the request was refused.
+func (s *Server) denyForeignCrontab(w http.ResponseWriter, r *http.Request, target string) bool {
+	if isAdmin(r) {
+		return false
+	}
+	u := UserFrom(r)
+	if u != nil && u.Username == target {
+		if acct, err := osuser.Lookup(target); err == nil && acct.Uid != "0" {
+			return false
+		}
+	}
+	writeJSONError(w, http.StatusForbidden, "only admins can manage another user's or root's crontab")
+	return true
 }

@@ -7,7 +7,7 @@
 [![CI](https://github.com/Satan1an/webtermin/actions/workflows/ci.yml/badge.svg)](https://github.com/Satan1an/webtermin/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/Satan1an/webtermin?display_name=tag&sort=semver&color=00DC82)](https://github.com/Satan1an/webtermin/releases/latest)
 [![License: MIT](https://img.shields.io/badge/license-MIT-22d3ee.svg)](LICENSE)
-[![Go](https://img.shields.io/badge/Go-1.25+-00ADD8?logo=go&logoColor=white)](https://go.dev)
+[![Go](https://img.shields.io/badge/Go-1.26+-00ADD8?logo=go&logoColor=white)](https://go.dev)
 [![Platforms](https://img.shields.io/badge/linux-amd64%20%7C%20arm64-555)](#установка)
 
 🌐 **[English](README.md)** · **Русский**
@@ -86,7 +86,7 @@ make docker        # локальный Docker-образ
 make docker-arm64  # arm64 Docker-образ через buildx
 ```
 
-Требуется Go ≥ 1.25 и Node ≥ 22 (LTS).
+Требуется Go ≥ 1.26 и Node ≥ 22 (LTS).
 
 ## Конфигурация
 

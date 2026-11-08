@@ -2,13 +2,17 @@ package server
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"net/http"
+	"os/user"
 	"strconv"
 	"time"
 
 	"github.com/Satan1an/webtermin/internal/audit"
 	"github.com/Satan1an/webtermin/internal/auth"
 	"github.com/Satan1an/webtermin/internal/pty"
+	"github.com/Satan1an/webtermin/internal/store"
 	"github.com/gorilla/websocket"
 )
 
@@ -31,15 +35,20 @@ type wsClientMsg struct {
 func (s *Server) handleTerminalWS(w http.ResponseWriter, r *http.Request) {
 	u := UserFrom(r)
 	rows, cols := parseSize(r)
-	// Try the panel user as a Linux user first; if that account doesn't exist,
-	// fall back to the process user so the terminal still works.
-	session, err := pty.Start(u.Username, s.Cfg.Terminal.DefaultShell, rows, cols)
+	account, err := terminalAccount(u, user.Lookup)
 	if err != nil {
-		session, err = pty.Start("", s.Cfg.Terminal.DefaultShell, rows, cols)
-		if err != nil {
-			writeJSONError(w, 500, err.Error())
-			return
-		}
+		uid := u.ID
+		s.Audit.Write(audit.Event{
+			UserID: &uid, Username: u.Username, IP: auth.ClientIP(r),
+			Action: "terminal.open", Outcome: audit.OutcomeDenied, Detail: err.Error(),
+		})
+		writeJSONError(w, http.StatusForbidden, err.Error())
+		return
+	}
+	session, err := pty.Start(account, s.Cfg.Terminal.DefaultShell, rows, cols)
+	if err != nil {
+		writeJSONError(w, 500, err.Error())
+		return
 	}
 
 	conn, err := upgrader.Upgrade(w, r, nil)
@@ -146,4 +155,24 @@ func parseSize(r *http.Request) (uint16, uint16) {
 		}
 	}
 	return rows, cols
+}
+
+// terminalAccount picks the Linux account a panel user's PTY runs as. The
+// panel itself runs as root, so this is the line between "operator" and root:
+// non-admins only ever get their own same-named Linux account and never
+// uid 0. Admins are root-equivalent anyway, so they fall back to the panel's
+// process user ("") when no same-named account exists.
+func terminalAccount(u *store.User, lookup func(string) (*user.User, error)) (string, error) {
+	isAdmin := auth.AtLeast(auth.Role(u.Role), auth.RoleAdmin)
+	acct, err := lookup(u.Username)
+	if err != nil {
+		if isAdmin {
+			return "", nil
+		}
+		return "", fmt.Errorf("no Linux account %q for this panel user — an admin must create it first", u.Username)
+	}
+	if acct.Uid == "0" && !isAdmin {
+		return "", errors.New("a root terminal requires the admin role")
+	}
+	return u.Username, nil
 }

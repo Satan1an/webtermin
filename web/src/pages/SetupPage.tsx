@@ -13,6 +13,7 @@ export function SetupPage() {
   const [u, setU] = useState("");
   const [p, setP] = useState("");
   const [p2, setP2] = useState("");
+  const [token, setToken] = useState("");
   const [loading, setLoading] = useState(false);
   const auth = useAuth();
 
@@ -24,7 +25,7 @@ export function SetupPage() {
     }
     setLoading(true);
     try {
-      await api.post("/api/auth/setup", { username: u, password: p });
+      await api.post("/api/auth/setup", { username: u, password: p, setup_token: token.trim() });
       // immediately log in
       const me = await api.post<{
         user: string;
@@ -62,12 +63,27 @@ export function SetupPage() {
           <CardContent>
             <form onSubmit={submit} className="space-y-4">
               <div className="space-y-1.5">
+                <Label htmlFor="t">Setup token</Label>
+                <Input
+                  id="t"
+                  value={token}
+                  onChange={(e) => setToken(e.target.value)}
+                  autoComplete="off"
+                  spellCheck={false}
+                  autoFocus
+                  required
+                />
+                <p className="text-xs text-muted-foreground">
+                  Printed to the service log on first start:{" "}
+                  <code>journalctl -u webtermin | grep setup_token</code>
+                </p>
+              </div>
+              <div className="space-y-1.5">
                 <Label htmlFor="u">Admin username</Label>
                 <Input
                   id="u"
                   value={u}
                   onChange={(e) => setU(e.target.value)}
-                  autoFocus
                   required
                 />
               </div>

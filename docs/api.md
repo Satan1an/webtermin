@@ -22,7 +22,7 @@ curl -H "Authorization: Bearer $TOKEN" https://my-host:8443/api/system/info
 | Method | Path                              | Role     | Notes |
 |--------|-----------------------------------|----------|-------|
 | GET    | `/auth/status`                    | public   | Returns `{needs_setup, user?}`. The login page polls this on boot. |
-| POST   | `/auth/setup`                     | public   | First-run admin creation. `{username, password}`. 409 if already configured. |
+| POST   | `/auth/setup`                     | public   | First-run admin creation. `{username, password, setup_token}` — the one-time token is printed to the service log on first start (`journalctl -u webtermin \| grep setup_token`). 403 on a wrong token, 409 if already configured. |
 | POST   | `/auth/login`                     | public   | `{username, password, totp?}`. Sets session cookie. |
 | POST   | `/auth/logout`                    | any      | Invalidates the session. |
 | GET    | `/auth/me`                        | any      | Returns the current session info (user / role / csrf_token). |
@@ -48,15 +48,15 @@ curl -H "Authorization: Bearer $TOKEN" https://my-host:8443/api/system/info
 |--------|--------------------------------------------|----------|-------|
 | GET    | `/services?type=service`                   | viewer   | Units of a given type (defaults to `service`). |
 | POST   | `/services/{name}/action`                  | operator | `{action: start\|stop\|restart\|reload\|enable\|disable}` |
-| GET    | `/services/{name}/journal/stream`          | viewer   | WS `journalctl -u <name> -f`. |
+| GET    | `/services/{name}/journal/stream`          | operator | WS `journalctl -u <name> -f`. Journals often contain secrets. |
 
 ## Cron
 
 | Method | Path                            | Role     | Notes |
 |--------|---------------------------------|----------|-------|
-| GET    | `/cron/{user}`                  | viewer   | Returns parsed entries. |
-| POST   | `/cron/{user}`                  | operator | `{schedule, command, comment?}` |
-| DELETE | `/cron/{user}/{line}`           | operator | Removes the entry on line N (1-based). |
+| GET    | `/cron/{user}`                  | operator | Returns parsed entries. Operators: own non-root crontab only; others' are admin. |
+| POST   | `/cron/{user}`                  | operator | `{schedule, command, comment?}` — same own-crontab rule. |
+| DELETE | `/cron/{user}/{line}`           | operator | Removes the entry on line N (1-based) — same own-crontab rule. |
 
 ## Linux users
 
@@ -74,20 +74,20 @@ curl -H "Authorization: Bearer $TOKEN" https://my-host:8443/api/system/info
 
 | Method | Path                          | Role     | Notes |
 |--------|-------------------------------|----------|-------|
-| GET    | `/files/list?path=/etc`       | viewer   | |
-| GET    | `/files/read?path=/etc/hosts` | viewer   | Up to 5 MiB. |
-| GET    | `/files/download?path=…`      | viewer   | Streaming. |
-| POST   | `/files/write`                | operator | `{path, content}` |
-| POST   | `/files/upload`               | operator | multipart `dir` + `file`. |
-| POST   | `/files/mkdir`                | operator | `{path}` |
-| DELETE | `/files/delete`               | operator | `{path, recursive?}` |
-| POST   | `/files/chmod`                | operator | `{path, mode: "0644"}` (octal string) |
+| GET    | `/files/list?path=/etc`       | admin    | The whole files module is admin-only: the panel runs as root with unrestricted paths. |
+| GET    | `/files/read?path=/etc/hosts` | admin    | Up to 5 MiB. |
+| GET    | `/files/download?path=…`      | admin    | Streaming. |
+| POST   | `/files/write`                | admin    | `{path, content}` |
+| POST   | `/files/upload`               | admin    | multipart `dir` + `file`. |
+| POST   | `/files/mkdir`                | admin    | `{path}` |
+| DELETE | `/files/delete`               | admin    | `{path, recursive?}` |
+| POST   | `/files/chmod`                | admin    | `{path, mode: "0644"}` (octal string) |
 
 ## Terminal
 
 | Method | Path                          | Role     | Notes |
 |--------|-------------------------------|----------|-------|
-| GET    | `/terminal/ws?rows=24&cols=80`| operator | WebSocket PTY. |
+| GET    | `/terminal/ws?rows=24&cols=80`| operator | WebSocket PTY as the same-named Linux account. Non-admins without one, or mapping to uid 0, are refused. |
 
 ## Panel users + tokens
 
@@ -104,16 +104,16 @@ curl -H "Authorization: Bearer $TOKEN" https://my-host:8443/api/system/info
 
 ## Docker
 
-Read endpoints are open to any authed user; lifecycle is operator+.
+Lists are open to any authed user; inspect, logs and lifecycle are operator+. Settings that hand over the host — `privileged`, `network_mode: host`, bind mounts of host paths — are admin-only on create, and operators can't `exec` into containers that have them.
 
 | Method | Path                                                 | Role     | Notes |
 |--------|------------------------------------------------------|----------|-------|
 | GET    | `/docker/containers`                                 | viewer   | |
-| GET    | `/docker/containers/{id}`                            | viewer   | Inspect. |
+| GET    | `/docker/containers/{id}`                            | operator | Inspect (includes env vars). |
 | POST   | `/docker/containers`                                 | operator | `CreateContainerSpec` body. |
 | DELETE | `/docker/containers/{id}?force=1`                    | operator | |
 | POST   | `/docker/containers/{id}/action`                     | operator | `{action: start\|stop\|restart\|pause\|unpause\|kill}` |
-| GET    | `/docker/containers/{id}/logs/stream?tail=200`       | viewer   | WS. |
+| GET    | `/docker/containers/{id}/logs/stream?tail=200`       | operator | WS. |
 | GET    | `/docker/containers/{id}/stats/stream`               | viewer   | WS. One JSON / sec. |
 | GET    | `/docker/containers/{id}/exec/ws?shell=/bin/sh`      | operator | WS. PTY in container. |
 | GET    | `/docker/images`                                     | viewer   | |
@@ -134,8 +134,8 @@ Read endpoints are open to any authed user; lifecycle is operator+.
 
 | Method | Path                          | Role     | Notes |
 |--------|-------------------------------|----------|-------|
-| GET    | `/stacks`                     | viewer   | List with live status. |
-| GET    | `/stacks/{id}`                | viewer   | One stack with containers. |
+| GET    | `/stacks`                     | viewer   | List with live status. `compose` is blank for viewers. |
+| GET    | `/stacks/{id}`                | operator | One stack with containers. |
 | POST   | `/stacks`                     | operator | `{name, compose}` — deploys. |
 | PUT    | `/stacks/{id}`                | operator | `{compose}` — replace + redeploy. |
 | POST   | `/stacks/{id}/start`          | operator | |
@@ -187,7 +187,7 @@ Read endpoints are open to any authed user; lifecycle is operator+.
 |--------|-------------------------------------------|----------|-------|
 | GET    | `/backups`                                | operator | |
 | POST   | `/backups`                                | admin    | `{name, paths?: []}`. Default paths: `/etc/webtermin` + `/var/lib/webtermin`. |
-| GET    | `/backups/{id}/download`                  | operator | Streams the tar.gz. |
+| GET    | `/backups/{id}/download`                  | admin    | Streams the tar.gz (contains the panel database). |
 | DELETE | `/backups/{id}`                           | admin    | Deletes the file too. |
 
 ## Error shape

@@ -13,3 +13,8 @@ func RandomToken(nBytes int) string {
 	}
 	return base64.RawURLEncoding.EncodeToString(b)
 }
+
+// HashSessionID is the database key for a session token. Sessions are stored
+// hashed for the same reason API tokens are: read access to the SQLite file
+// must not yield a working login.
+func HashSessionID(token string) string { return HashAPIToken(token) }

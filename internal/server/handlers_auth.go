@@ -1,6 +1,7 @@
 package server
 
 import (
+	"crypto/subtle"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -83,7 +84,7 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	auth.IssueSessionCookie(w, res.Session.ID, s.Cfg.Security.SessionTTL(), true)
+	auth.IssueSessionCookie(w, res.Token, s.Cfg.Security.SessionTTL(), true)
 	uid := res.User.ID
 	s.Audit.Write(audit.Event{
 		UserID: &uid, Username: res.User.Username, IP: ip, Action: "auth.login",
@@ -116,11 +117,15 @@ func (s *Server) handleMe(w http.ResponseWriter, r *http.Request) {
 }
 
 type setupReq struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
+	Username   string `json:"username"`
+	Password   string `json:"password"`
+	SetupToken string `json:"setup_token"`
 }
 
 func (s *Server) handleFirstRunSetup(w http.ResponseWriter, r *http.Request) {
+	s.setupMu.Lock()
+	defer s.setupMu.Unlock()
+
 	count, err := s.Store.CountUsers()
 	if err != nil {
 		writeJSONError(w, 500, err.Error())
@@ -133,6 +138,16 @@ func (s *Server) handleFirstRunSetup(w http.ResponseWriter, r *http.Request) {
 	var req setupReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeJSONError(w, 400, "bad request")
+		return
+	}
+	if s.setupToken == "" ||
+		subtle.ConstantTimeCompare([]byte(req.SetupToken), []byte(s.setupToken)) != 1 {
+		s.Audit.Write(audit.Event{
+			Username: req.Username, IP: auth.ClientIP(r),
+			Action: "auth.setup", Outcome: audit.OutcomeDenied, Detail: "bad setup token",
+		})
+		writeJSONError(w, http.StatusForbidden,
+			"invalid setup token — see the service log: journalctl -u webtermin | grep setup_token")
 		return
 	}
 	req.Username = strings.TrimSpace(req.Username)
@@ -154,6 +169,7 @@ func (s *Server) handleFirstRunSetup(w http.ResponseWriter, r *http.Request) {
 		writeJSONError(w, 500, err.Error())
 		return
 	}
+	s.setupToken = ""
 	s.Audit.Write(audit.Event{
 		UserID: &u.ID, Username: u.Username, IP: auth.ClientIP(r),
 		Action: "auth.setup", Outcome: audit.OutcomeOK, Detail: "first-run admin",

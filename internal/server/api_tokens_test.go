@@ -53,13 +53,20 @@ func TestAPIToken_CreateAndUse(t *testing.T) {
 		t.Fatalf("token GET /me: %d %s", res.StatusCode, body)
 	}
 
-	// Token can do an operator action without CSRF.
-	res = reqWithToken(t, h, http.MethodPost, "/api/files/mkdir",
-		created.Plaintext, map[string]string{"path": "/tmp/wt-token-test-" + auth.RandomToken(4)})
-	// SafePath will accept the absolute path; we only assert NOT 401/403/400-from-csrf.
+	// Token can do an operator action without CSRF. Docker isn't reachable in
+	// tests, so we only assert NOT 401/403.
+	res = reqWithToken(t, h, http.MethodPost, "/api/docker/containers",
+		created.Plaintext, map[string]string{"name": "wt-token-test", "image": "alpine"})
 	if res.StatusCode == http.StatusForbidden || res.StatusCode == http.StatusUnauthorized {
 		body, _ := io.ReadAll(res.Body)
-		t.Fatalf("token operator mkdir got auth-error: %d %s", res.StatusCode, body)
+		t.Fatalf("token operator create container got auth-error: %d %s", res.StatusCode, body)
+	}
+
+	// …but the file manager is admin-only.
+	res = reqWithToken(t, h, http.MethodPost, "/api/files/mkdir",
+		created.Plaintext, map[string]string{"path": "/tmp/wt-token-test-" + auth.RandomToken(4)})
+	if res.StatusCode != http.StatusForbidden {
+		t.Fatalf("operator token mkdir should 403, got %d", res.StatusCode)
 	}
 }
 

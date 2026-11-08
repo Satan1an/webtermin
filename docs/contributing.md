@@ -34,7 +34,7 @@ docs/                    these docs + screenshots
 
 ## Local build
 
-Requires Go ≥ 1.25 and Node ≥ 22 (LTS).
+Requires Go ≥ 1.26 and Node ≥ 22 (LTS).
 
 ```bash
 make build           # produces ./webtermin for the host arch

@@ -174,13 +174,16 @@ func (s *Server) auditDocker(r *http.Request, action, target, outcome, detail st
 // --- Containers: create / remove / stats stream / exec console ----------
 
 func (s *Server) handleDockerContainerCreate(w http.ResponseWriter, r *http.Request) {
-	c, ok := s.dockerOrUnavailable(w)
-	if !ok {
-		return
-	}
 	var spec docker.CreateContainerSpec
 	if err := json.NewDecoder(r.Body).Decode(&spec); err != nil {
 		writeJSONError(w, 400, "bad request")
+		return
+	}
+	if s.denyHostEscape(w, r, "docker.create", spec.Name, spec.HostEscape()) {
+		return
+	}
+	c, ok := s.dockerOrUnavailable(w)
+	if !ok {
 		return
 	}
 	id, err := c.CreateContainer(r.Context(), spec)
@@ -282,6 +285,16 @@ func (s *Server) handleDockerExecWS(w http.ResponseWriter, r *http.Request) {
 	if !docker.ValidContainerID(id) {
 		writeJSONError(w, 400, "invalid container id")
 		return
+	}
+	if !isAdmin(r) {
+		info, err := c.Inspect(r.Context(), id)
+		if err != nil {
+			writeJSONError(w, 404, err.Error())
+			return
+		}
+		if s.denyHostEscape(w, r, "docker.exec", id, docker.InspectHostEscape(info)) {
+			return
+		}
 	}
 	shell := r.URL.Query().Get("shell")
 	if shell == "" {
@@ -657,3 +670,20 @@ func (s *Server) handleDockerPrune(w http.ResponseWriter, r *http.Request) {
 
 // Used in pruning/strconv imports; if compiler complains, we still reference them.
 var _ = strconv.Atoi
+
+func isAdmin(r *http.Request) bool {
+	u := UserFrom(r)
+	return u != nil && auth.AtLeast(auth.Role(u.Role), auth.RoleAdmin)
+}
+
+// denyHostEscape writes a 403 (and an audit entry) when a non-admin asks for
+// something that would give control of the host; why is HostEscape's verdict
+// ("" = fine). Returns true when the request was refused.
+func (s *Server) denyHostEscape(w http.ResponseWriter, r *http.Request, action, target, why string) bool {
+	if why == "" || isAdmin(r) {
+		return false
+	}
+	s.auditDocker(r, action, target, audit.OutcomeDenied, why)
+	writeJSONError(w, http.StatusForbidden, why+" gives control of the host and requires the admin role")
+	return true
+}

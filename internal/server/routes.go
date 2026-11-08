@@ -61,7 +61,8 @@ func (s *Server) routes() http.Handler {
 
 	// systemd — list/journal anyone authed; start/stop is an Operator action.
 	authed.HandleFunc("GET /api/services", s.handleServicesList)
-	authed.HandleFunc("GET /api/services/{name}/journal/stream", s.handleServiceJournalStream)
+	// Journals routinely contain secrets — operator+.
+	authed.HandleFunc("GET /api/services/{name}/journal/stream", s.protected(auth.RoleOperator, s.handleServiceJournalStream))
 	authed.HandleFunc("POST /api/services/{name}/action", s.protected(auth.RoleOperator, s.handleServiceAction))
 
 	// Linux system users — listing is operator+; mutating is admin-only because
@@ -74,22 +75,25 @@ func (s *Server) routes() http.Handler {
 	authed.HandleFunc("POST /api/linux/users/{name}/keys", s.protected(auth.RoleAdmin, s.handleLinuxUserKeyAdd))
 	authed.HandleFunc("DELETE /api/linux/users/{name}/keys/{fp}", s.protected(auth.RoleAdmin, s.handleLinuxUserKeyDelete))
 
-	// Files — reads to anyone authed, mutations operator+.
-	authed.HandleFunc("GET /api/files/list", s.handleFilesList)
-	authed.HandleFunc("GET /api/files/read", s.handleFileRead)
-	authed.HandleFunc("GET /api/files/download", s.handleFileDownload)
-	authed.HandleFunc("POST /api/files/write", s.protected(auth.RoleOperator, s.handleFileWrite))
-	authed.HandleFunc("POST /api/files/upload", s.protected(auth.RoleOperator, s.handleFileUpload))
-	authed.HandleFunc("POST /api/files/mkdir", s.protected(auth.RoleOperator, s.handleFileMkdir))
-	authed.HandleFunc("DELETE /api/files/delete", s.protected(auth.RoleOperator, s.handleFileDelete))
-	authed.HandleFunc("POST /api/files/chmod", s.protected(auth.RoleOperator, s.handleFileChmod))
+	// Files — admin only. The panel runs as root and paths are unrestricted, so
+	// reading means /etc/shadow and private keys, and writing means
+	// /etc/sudoers or root's authorized_keys: both are root-equivalent.
+	authed.HandleFunc("GET /api/files/list", s.protected(auth.RoleAdmin, s.handleFilesList))
+	authed.HandleFunc("GET /api/files/read", s.protected(auth.RoleAdmin, s.handleFileRead))
+	authed.HandleFunc("GET /api/files/download", s.protected(auth.RoleAdmin, s.handleFileDownload))
+	authed.HandleFunc("POST /api/files/write", s.protected(auth.RoleAdmin, s.handleFileWrite))
+	authed.HandleFunc("POST /api/files/upload", s.protected(auth.RoleAdmin, s.handleFileUpload))
+	authed.HandleFunc("POST /api/files/mkdir", s.protected(auth.RoleAdmin, s.handleFileMkdir))
+	authed.HandleFunc("DELETE /api/files/delete", s.protected(auth.RoleAdmin, s.handleFileDelete))
+	authed.HandleFunc("POST /api/files/chmod", s.protected(auth.RoleAdmin, s.handleFileChmod))
 
-	// Terminal — operator+. A PTY is effectively a shell-exec on the host.
+	// Terminal — operator+. Non-admins get only their own same-named, non-root
+	// Linux account (see terminalAccount).
 	authed.HandleFunc("GET /api/terminal/ws", s.protected(auth.RoleOperator, s.handleTerminalWS))
 
-	// Cron — read for any authed user; write is operator (it schedules code to
-	// run with elevated privileges).
-	authed.HandleFunc("GET /api/cron/{user}", s.handleCronList)
+	// Cron — operator+, own non-root crontab only; other users' crontabs are
+	// admin (see denyForeignCrontab). Entries may embed secrets, so no viewer.
+	authed.HandleFunc("GET /api/cron/{user}", s.protected(auth.RoleOperator, s.handleCronList))
 	authed.HandleFunc("POST /api/cron/{user}", s.protected(auth.RoleOperator, s.handleCronAdd))
 	authed.HandleFunc("DELETE /api/cron/{user}/{line}", s.protected(auth.RoleOperator, s.handleCronDelete))
 
@@ -99,14 +103,16 @@ func (s *Server) routes() http.Handler {
 	authed.HandleFunc("DELETE /api/firewall/rules/{number}", s.protected(auth.RoleAdmin, s.handleFirewallDelete))
 	authed.HandleFunc("POST /api/firewall/toggle", s.protected(auth.RoleAdmin, s.handleFirewallToggle))
 
-	// Docker — read for anyone authed; lifecycle / create / remove / exec are operator.
+	// Docker — lists for anyone authed; inspect/logs (env vars and logs hold
+	// secrets) and lifecycle / create / remove / exec are operator. Settings
+	// that hand over the host are admin-only (see denyHostEscape).
 	authed.HandleFunc("GET /api/docker/containers", s.handleDockerContainers)
 	authed.HandleFunc("GET /api/docker/images", s.handleDockerImages)
-	authed.HandleFunc("GET /api/docker/containers/{id}", s.handleDockerInspect)
+	authed.HandleFunc("GET /api/docker/containers/{id}", s.protected(auth.RoleOperator, s.handleDockerInspect))
 	authed.HandleFunc("POST /api/docker/containers", s.protected(auth.RoleOperator, s.handleDockerContainerCreate))
 	authed.HandleFunc("DELETE /api/docker/containers/{id}", s.protected(auth.RoleOperator, s.handleDockerContainerRemove))
 	authed.HandleFunc("POST /api/docker/containers/{id}/action", s.protected(auth.RoleOperator, s.handleDockerAction))
-	authed.HandleFunc("GET /api/docker/containers/{id}/logs/stream", s.handleDockerLogsStream)
+	authed.HandleFunc("GET /api/docker/containers/{id}/logs/stream", s.protected(auth.RoleOperator, s.handleDockerLogsStream))
 	authed.HandleFunc("GET /api/docker/containers/{id}/stats/stream", s.handleDockerStatsStream)
 	authed.HandleFunc("GET /api/docker/containers/{id}/exec/ws", s.protected(auth.RoleOperator, s.handleDockerExecWS))
 
@@ -126,11 +132,12 @@ func (s *Server) routes() http.Handler {
 	authed.HandleFunc("GET /api/docker/df", s.handleDockerDiskUsage)
 	authed.HandleFunc("POST /api/docker/prune", s.protected(auth.RoleAdmin, s.handleDockerPrune))
 
-	// Compose stacks — read viewer, write operator. A stack is just a labelled
+	// Compose stacks — list viewer (compose text redacted), full stack and
+	// writes operator. A stack is just a labelled
 	// group of containers + their networks/volumes; deploys reuse the existing
 	// docker engine client so RBAC and audit-log semantics carry over.
 	authed.HandleFunc("GET /api/stacks", s.handleStacksList)
-	authed.HandleFunc("GET /api/stacks/{id}", s.handleStackGet)
+	authed.HandleFunc("GET /api/stacks/{id}", s.protected(auth.RoleOperator, s.handleStackGet))
 	authed.HandleFunc("POST /api/stacks", s.protected(auth.RoleOperator, s.handleStackCreate))
 	authed.HandleFunc("PUT /api/stacks/{id}", s.protected(auth.RoleOperator, s.handleStackUpdate))
 	authed.HandleFunc("POST /api/stacks/{id}/start", s.protected(auth.RoleOperator, s.handleStackStart))
@@ -159,11 +166,11 @@ func (s *Server) routes() http.Handler {
 	authed.HandleFunc("POST /api/packages/remove", s.protected(auth.RoleAdmin, s.handlePackagesRemove))
 	authed.HandleFunc("POST /api/packages/upgrade", s.protected(auth.RoleAdmin, s.handlePackagesUpgrade))
 
-	// Backups — list/download is operator+, create/delete is admin (the
+	// Backups — list is operator+; download/create/delete is admin (the
 	// archive itself contains the panel's whole state).
 	authed.HandleFunc("GET /api/backups", s.protected(auth.RoleOperator, s.handleBackupsList))
 	authed.HandleFunc("POST /api/backups", s.protected(auth.RoleAdmin, s.handleBackupCreate))
-	authed.HandleFunc("GET /api/backups/{id}/download", s.protected(auth.RoleOperator, s.handleBackupDownload))
+	authed.HandleFunc("GET /api/backups/{id}/download", s.protected(auth.RoleAdmin, s.handleBackupDownload))
 	authed.HandleFunc("DELETE /api/backups/{id}", s.protected(auth.RoleAdmin, s.handleBackupDelete))
 
 	mux.Handle("/api/auth/logout", s.requireAuth(s.requireCSRF(authed)))

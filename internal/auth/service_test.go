@@ -4,6 +4,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/pquerna/otp/totp"
+
 	"github.com/Satan1an/webtermin/internal/auth"
 	"github.com/Satan1an/webtermin/internal/config"
 	"github.com/Satan1an/webtermin/internal/store"
@@ -127,12 +129,56 @@ func TestLookupSession_RejectsExpired(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if _, _, err := svc.LookupSession(res.Token); err != nil {
+		t.Fatalf("fresh session should be valid, got %v", err)
+	}
 	// Manually expire the session via direct DB write.
 	if _, err := st.DB.Exec(`UPDATE sessions SET expires_at = ? WHERE id = ?`,
 		time.Now().Add(-time.Hour).Unix(), res.Session.ID); err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := svc.LookupSession(res.Session.ID); err != store.ErrNotFound {
+	if _, _, err := svc.LookupSession(res.Token); err != store.ErrNotFound {
 		t.Fatalf("expected ErrNotFound for expired session, got %v", err)
+	}
+}
+
+func TestSession_StoredOnlyAsHash(t *testing.T) {
+	svc, st, _ := setupService(t)
+	createUser(t, st, "alice", "secret-password")
+	res, err := svc.Login("alice", "secret-password", "", "1.1.1.1", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Session.ID == res.Token || res.Session.ID != auth.HashSessionID(res.Token) {
+		t.Fatalf("session row must be keyed by the token hash")
+	}
+	// A value copied out of the database is not a usable cookie.
+	if _, _, err := svc.LookupSession(res.Session.ID); err != store.ErrNotFound {
+		t.Fatalf("stored ID must not work as a cookie, got %v", err)
+	}
+	if _, _, err := svc.LookupSession(res.Token); err != nil {
+		t.Fatalf("cookie token should work: %v", err)
+	}
+}
+
+func TestLogin_TOTPCodeCannotBeReplayed(t *testing.T) {
+	svc, st, _ := setupService(t)
+	u := createUser(t, st, "alice", "secret-password")
+	key, err := auth.GenerateTOTPSecret("webtermin", "alice")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := st.UpdateUserTOTP(u.ID, key.Secret()); err != nil {
+		t.Fatal(err)
+	}
+	code, err := totp.GenerateCode(key.Secret(), time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := svc.Login("alice", "secret-password", code, "1.1.1.1", ""); err != nil {
+		t.Fatalf("first use of code: %v", err)
+	}
+	if _, err := svc.Login("alice", "secret-password", code, "1.1.1.1", ""); err != auth.ErrTOTPInvalid {
+		t.Fatalf("replayed code should be ErrTOTPInvalid, got %v", err)
 	}
 }

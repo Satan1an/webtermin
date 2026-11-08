@@ -88,7 +88,11 @@ func (s *Server) handleStacksList(w http.ResponseWriter, r *http.Request) {
 	}
 	out := make([]stackOut, 0, len(stacks))
 	for _, st := range stacks {
-		out = append(out, toStackOut(st, m, r))
+		so := toStackOut(st, m, r)
+		if u := UserFrom(r); u == nil || !auth.AtLeast(auth.Role(u.Role), auth.RoleOperator) {
+			so.Compose = "" // compose files carry passwords in env — not for viewers
+		}
+		out = append(out, so)
 	}
 	writeJSON(w, 200, out)
 }
@@ -138,6 +142,9 @@ func (s *Server) handleStackCreate(w http.ResponseWriter, r *http.Request) {
 		writeJSONError(w, 400, err.Error())
 		return
 	}
+	if s.denyHostEscape(w, r, "stacks.deploy", req.Name, stackHostEscape(req.Name, file)) {
+		return
+	}
 	if _, err := s.Store.GetStackByName(req.Name); err == nil {
 		writeJSONError(w, http.StatusConflict, "stack already exists")
 		return
@@ -183,6 +190,9 @@ func (s *Server) handleStackUpdate(w http.ResponseWriter, r *http.Request) {
 	file, err := compose.Parse(req.Compose)
 	if err != nil {
 		writeJSONError(w, 400, err.Error())
+		return
+	}
+	if s.denyHostEscape(w, r, "stacks.update", st.Name, stackHostEscape(st.Name, file)) {
 		return
 	}
 	mgr, ok := s.dockerMgrOr503(w)
@@ -305,4 +315,18 @@ func boolStr(b bool) string {
 		return "1"
 	}
 	return "0"
+}
+
+// stackHostEscape is HostEscape across every service of a compose file.
+func stackHostEscape(stackName string, file *compose.File) string {
+	for name, svc := range file.Services {
+		spec, err := svc.ToSpec(stackName, name)
+		if err != nil {
+			continue // Deploy rejects it with the same error
+		}
+		if why := spec.HostEscape(); why != "" {
+			return "service " + name + ": " + why
+		}
+	}
+	return ""
 }

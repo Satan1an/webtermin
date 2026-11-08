@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- Viewers could read and download any host file as root — including the
+  panel database, where sessions were stored in plaintext, allowing an
+  admin-session takeover. The files module is now admin-only and sessions
+  are stored as SHA-256 hashes. **All users must log in again after upgrading.**
+- The terminal fell back to a root shell when a panel user had no same-named
+  Linux account. It now fails closed for non-admins and never gives a
+  non-admin a uid-0 account.
+- Operators could gain root through privileged / host-network / host-bind
+  containers and stacks, `exec` into such containers, and root's crontab.
+  These are now admin-only; operators manage only their own crontab.
+- Container inspect and logs, service journals, cron, full stack compose text
+  and backup downloads are no longer readable by viewers.
+- First-run setup now requires a one-time token printed to the service log
+  (`journalctl -u webtermin | grep setup_token`).
+- TOTP codes can no longer be replayed within their validity window.
+- Go toolchain raised to ≥ 1.26 (1.25 is out of support) and dependencies
+  updated, clearing 16 of 17 known module CVEs (none reachable from our code);
+  CI builds with the newest stable Go and runs weekly.
+
+See the 2026-11-08 review in [SECURITY.md](SECURITY.md).
+
 ## [0.9.1] — 2026-05-17
 
 ### Fixed

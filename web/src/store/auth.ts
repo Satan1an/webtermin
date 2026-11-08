@@ -45,11 +45,15 @@ export const useAuth = create<AuthState>((set) => ({
     set({ user: null, isAdmin: false, role: null, csrfToken: null, has2FA: false }),
 }));
 
-/** True if the current user's role is `min` or higher. */
-export function useAtLeast(min: Role): boolean {
-  const role = useAuth((s) => s.role);
+/** True if `role` is `min` or higher. */
+export function atLeast(role: Role | null, min: Role): boolean {
   if (!role) return false;
   return roleRank[role] >= roleRank[min];
+}
+
+/** True if the current user's role is `min` or higher. */
+export function useAtLeast(min: Role): boolean {
+  return atLeast(useAuth((s) => s.role), min);
 }
 
 export function useCanWrite(): boolean {

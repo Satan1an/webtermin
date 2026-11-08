@@ -36,9 +36,24 @@ common server-software risk classes, with automated scans on top.
 - The panel process runs as **root** — required to manage system users, services, and arbitrary host files. Mitigated by Argon2id + 2FA + audit log + the action allowlist.
 - The Docker compose file runs `privileged: true` with host `/etc`, `/home`, and `/run/dbus` bind-mounted — required to manage the host *from* a container.
 - CSP allows `'unsafe-eval'` (Monaco editor workers) and `'unsafe-inline'` styles (Tailwind atomic CSS).
-- Every panel user is currently admin; per-user RBAC is on the roadmap.
+- Roles (viewer / operator / admin) are enforced, but because the panel runs as root the line is drawn at *root-equivalence*: anything that would give a shell or file access as root — the file manager, a root terminal, privileged / host-network / host-bind containers, other users' crontabs, backups — is admin-only. See the 2026-11 review below.
 
 These are documented here so users can make an informed deployment decision, not because they're considered acceptable risks for every threat model.
+
+## Security review (2026-11-08)
+
+A review of the role model found that the RBAC described above was weaker in
+practice, because the panel acts as root on behalf of every role. Fixed:
+
+| Issue | Fix |
+| --- | --- |
+| A **viewer** could read/download any file as root — `/etc/shadow`, private keys, and the panel DB, whose sessions were stored in plaintext → hijack an admin session. | Files module is admin-only; sessions are stored as SHA-256 hashes like API tokens, so the DB holds no usable cookie. |
+| The **terminal** fell back to the panel process user (root) when a panel user had no same-named Linux account. | Fails closed for non-admins; a non-admin is also never given a uid-0 account. Shells now keep the user's own supplementary groups and `USER`/`LOGNAME`. |
+| An **operator** was root-equivalent via `privileged` / host-network / host-bind containers and stacks, `exec` into such containers, and editing root's crontab. | Those are admin-only (`HostEscape` / `InspectHostEscape`); operators manage only their own non-root crontab. |
+| Secret-bearing reads (container inspect + logs, service journals, cron, full stack compose text, backup download) were open to viewers. | Operator+ (backup download: admin); stack list redacts `compose` for viewers. |
+| **First-run setup** was claimable by whoever reached a fresh install first; count-then-create race. | Requires a one-time token printed to the service log; serialised with a mutex. |
+| A TOTP code could be replayed within its window. | Each user's last accepted time-step is remembered; reuse is rejected. |
+| Built with Go 1.25 (no longer receives security fixes); 17 known CVEs in required modules. | Go ≥ 1.26 (CI/releases build with the newest stable Go), dependencies updated; CI also runs weekly so `govulncheck` catches newly published CVEs. |
 
 ## Supported versions
 
@@ -47,8 +62,8 @@ minor release receives security fixes.
 
 | Version  | Supported          |
 | -------- | ------------------ |
-| `0.1.x`  | :white_check_mark: |
-| `< 0.1`  | :x:                |
+| `0.9.x`  | :white_check_mark: |
+| `< 0.9`  | :x:                |
 
 ## Reporting a vulnerability
 

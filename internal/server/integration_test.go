@@ -69,7 +69,7 @@ func cookieFrom(res *http.Response, name string) *http.Cookie {
 }
 
 func TestEndToEnd_SetupLoginMutateLogout(t *testing.T) {
-	_, h := newTestServer(t)
+	srv, h := newTestServer(t)
 
 	// 1. Status — needs setup.
 	res := doJSON(t, h, http.MethodGet, "/api/auth/status", nil, nil, nil)
@@ -83,7 +83,8 @@ func TestEndToEnd_SetupLoginMutateLogout(t *testing.T) {
 
 	// 2. Setup admin.
 	res = doJSON(t, h, http.MethodPost, "/api/auth/setup",
-		map[string]string{"username": "admin", "password": "correct-horse-battery"},
+		map[string]string{"username": "admin", "password": "correct-horse-battery",
+			"setup_token": srv.setupToken},
 		nil, nil)
 	if res.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(res.Body)

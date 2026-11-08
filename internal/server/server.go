@@ -10,6 +10,7 @@ import (
 	"net"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/Satan1an/webtermin/internal/audit"
@@ -27,6 +28,12 @@ type Server struct {
 	WebFS   fs.FS // built React app, or nil for dev
 	OIDC    *auth.OIDCProvider
 	HTTPSrv *http.Server
+
+	// First-run setup is gated by a one-time token printed to the service log,
+	// so whoever reaches a fresh install over the network first can't claim it.
+	// setupMu also serialises the count-then-create check.
+	setupMu    sync.Mutex
+	setupToken string
 }
 
 func New(cfg *config.Config, st *store.Store, lg *slog.Logger, webFS fs.FS) *Server {
@@ -37,6 +44,11 @@ func New(cfg *config.Config, st *store.Store, lg *slog.Logger, webFS fs.FS) *Ser
 		Audit: audit.New(st, lg),
 		Log:   lg,
 		WebFS: webFS,
+	}
+	if n, err := st.CountUsers(); err != nil || n == 0 {
+		s.setupToken = auth.RandomToken(16)
+		lg.Warn("first-run setup required: enter this one-time token on the setup page",
+			"setup_token", s.setupToken)
 	}
 	// Best-effort OIDC discovery. If the IdP is briefly unreachable at boot,
 	// log it and continue — local login still works.

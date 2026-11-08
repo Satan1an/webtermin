@@ -94,15 +94,12 @@ func (s *Server) handleOIDCCallback(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	sid := auth.RandomToken(32)
-	csrf := auth.RandomToken(32)
-	sess, err := s.Store.CreateSession(sid, u.ID, csrf, s.Cfg.Security.SessionTTL(),
-		auth.ClientIP(r), r.UserAgent())
+	token, _, err := s.Auth.NewSession(u.ID, auth.ClientIP(r), r.UserAgent())
 	if err != nil {
 		writeJSONError(w, 500, err.Error())
 		return
 	}
-	auth.IssueSessionCookie(w, sess.ID, s.Cfg.Security.SessionTTL(), true)
+	auth.IssueSessionCookie(w, token, s.Cfg.Security.SessionTTL(), true)
 	uid := u.ID
 	s.Audit.Write(audit.Event{
 		UserID: &uid, Username: u.Username, IP: auth.ClientIP(r),

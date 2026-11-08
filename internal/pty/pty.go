@@ -82,6 +82,7 @@ func (s *Session) Resize(rows, cols uint16) error {
 func Start(username, defaultShell string, rows, cols uint16) (*Session, error) {
 	shell := defaultShell
 	var uid, gid int = -1, -1
+	var groups []uint32
 	var home string
 
 	if username != "" {
@@ -96,6 +97,15 @@ func Start(username, defaultShell string, rows, cols uint16) (*Session, error) {
 			gid = gid64
 		}
 		home = u.HomeDir
+		// Supplementary groups: without them the shell silently loses the
+		// user's own memberships (docker, sudo, …).
+		if gids, err := u.GroupIds(); err == nil {
+			for _, g := range gids {
+				if n, err := strconv.ParseUint(g, 10, 32); err == nil {
+					groups = append(groups, uint32(n))
+				}
+			}
+		}
 		// We can't easily query the user's shell without parsing /etc/passwd;
 		// fall back to bash if no override.
 		if shell == "" {
@@ -129,9 +139,13 @@ func Start(username, defaultShell string, rows, cols uint16) (*Session, error) {
 		cmd.Env = append(cmd.Env, "HOME="+home)
 		cmd.Dir = home
 	}
+	if username != "" {
+		// Don't let the panel's root environment claim to be root.
+		cmd.Env = append(cmd.Env, "USER="+username, "LOGNAME="+username)
+	}
 	if uid >= 0 {
 		cmd.SysProcAttr = &syscall.SysProcAttr{
-			Credential: &syscall.Credential{Uid: uint32(uid), Gid: uint32(gid)},
+			Credential: &syscall.Credential{Uid: uint32(uid), Gid: uint32(gid), Groups: groups},
 			Setsid:     true,
 		}
 	}

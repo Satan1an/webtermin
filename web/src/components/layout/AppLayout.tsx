@@ -31,37 +31,38 @@ import {
   DropdownTrigger,
 } from "@/components/ui/dropdown";
 import { Separator } from "@/components/ui/separator";
-import { useAuth, useIsAdmin } from "@/store/auth";
+import { atLeast, useAuth, type Role } from "@/store/auth";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { toast } from "@/components/ui/toast";
 
+// minRole mirrors the server's route policy (internal/server/routes.go), so
+// nobody is shown a page whose API would answer 403.
 const navItems = [
-  { to: "/dashboard", label: "Dashboard", icon: Activity, adminOnly: false },
-  { to: "/services", label: "Services", icon: CircuitBoard, adminOnly: false },
-  { to: "/docker", label: "Docker", icon: Boxes, adminOnly: false },
-  { to: "/stacks", label: "Stacks", icon: Layers, adminOnly: false },
-  { to: "/cron", label: "Cron", icon: Clock, adminOnly: false },
-  { to: "/users", label: "Users", icon: Users, adminOnly: false },
-  { to: "/files", label: "Files", icon: Files, adminOnly: false },
-  { to: "/terminal", label: "Terminal", icon: TerminalSquare, adminOnly: false },
-  { to: "/api-tokens", label: "API tokens", icon: KeyRound, adminOnly: false },
-  { to: "/firewall", label: "Firewall", icon: ShieldCheck, adminOnly: true },
-  { to: "/packages", label: "Packages", icon: Package, adminOnly: false },
-  { to: "/network", label: "Network", icon: NetworkIcon, adminOnly: true },
-  { to: "/wireguard", label: "WireGuard", icon: Radio, adminOnly: true },
-  { to: "/backup", label: "Backup", icon: Archive, adminOnly: true },
-  { to: "/panel-users", label: "Panel users", icon: Shield, adminOnly: true },
-  { to: "/audit", label: "Audit log", icon: ScrollText, adminOnly: true },
+  { to: "/dashboard", label: "Dashboard", icon: Activity, minRole: "viewer" as Role },
+  { to: "/services", label: "Services", icon: CircuitBoard, minRole: "viewer" as Role },
+  { to: "/docker", label: "Docker", icon: Boxes, minRole: "viewer" as Role },
+  { to: "/stacks", label: "Stacks", icon: Layers, minRole: "viewer" as Role },
+  { to: "/cron", label: "Cron", icon: Clock, minRole: "operator" as Role },
+  { to: "/users", label: "Users", icon: Users, minRole: "operator" as Role },
+  { to: "/files", label: "Files", icon: Files, minRole: "admin" as Role },
+  { to: "/terminal", label: "Terminal", icon: TerminalSquare, minRole: "operator" as Role },
+  { to: "/api-tokens", label: "API tokens", icon: KeyRound, minRole: "viewer" as Role },
+  { to: "/firewall", label: "Firewall", icon: ShieldCheck, minRole: "admin" as Role },
+  { to: "/packages", label: "Packages", icon: Package, minRole: "viewer" as Role },
+  { to: "/network", label: "Network", icon: NetworkIcon, minRole: "admin" as Role },
+  { to: "/wireguard", label: "WireGuard", icon: Radio, minRole: "admin" as Role },
+  { to: "/backup", label: "Backup", icon: Archive, minRole: "admin" as Role },
+  { to: "/panel-users", label: "Panel users", icon: Shield, minRole: "admin" as Role },
+  { to: "/audit", label: "Audit log", icon: ScrollText, minRole: "admin" as Role },
 ];
 
 export function AppLayout() {
   const auth = useAuth();
-  const isAdmin = useIsAdmin();
   const nav = useNavigate();
   const loc = useLocation();
 
-  const visibleNav = navItems.filter((it) => !it.adminOnly || isAdmin);
+  const visibleNav = navItems.filter((it) => atLeast(auth.role, it.minRole));
 
   const logout = async () => {
     try {

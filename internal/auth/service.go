@@ -5,6 +5,7 @@ import (
 	"net"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/Satan1an/webtermin/internal/config"
@@ -28,13 +29,25 @@ var (
 type Service struct {
 	Store *store.Store
 	Cfg   *config.Config
+
+	// lastTOTPStep remembers the newest TOTP time-step each user has already
+	// logged in with, so a sniffed or shoulder-surfed code can't be replayed
+	// inside its validity window. In-memory: a restart only reopens the
+	// current ~90s window, which is acceptable.
+	totpMu       sync.Mutex
+	lastTOTPStep map[int64]int64
 }
 
-func New(s *store.Store, c *config.Config) *Service { return &Service{Store: s, Cfg: c} }
+func New(s *store.Store, c *config.Config) *Service {
+	return &Service{Store: s, Cfg: c, lastTOTPStep: map[int64]int64{}}
+}
 
 type LoginResult struct {
 	Session *store.Session
 	User    *store.User
+	// Token is the plaintext session token for the cookie. Only its hash is
+	// stored (Session.ID), so a leaked database can't be replayed as a login.
+	Token string
 }
 
 // Login authenticates a user and creates a session. ip and ua are recorded.
@@ -69,41 +82,54 @@ func (a *Service) Login(username, password, totpCode, ip, ua string) (*LoginResu
 		if totpCode == "" {
 			return nil, ErrTOTPRequired
 		}
-		if !ValidateTOTP(user.TOTPSecret, totpCode) {
+		if !a.consumeTOTP(user.ID, user.TOTPSecret, totpCode) {
 			_ = a.Store.RecordLoginAttempt(ip, username, false)
 			return nil, ErrTOTPInvalid
 		}
 	}
 
-	sid := RandomToken(sessionTokenBytes)
-	csrf := RandomToken(csrfTokenBytes)
-	sess, err := a.Store.CreateSession(sid, user.ID, csrf, a.Cfg.Security.SessionTTL(), ip, ua)
+	token, sess, err := a.NewSession(user.ID, ip, ua)
 	if err != nil {
 		return nil, err
 	}
 	_ = a.Store.RecordLoginAttempt(ip, username, true)
-	return &LoginResult{Session: sess, User: user}, nil
+	return &LoginResult{Session: sess, User: user, Token: token}, nil
 }
 
+// NewSession creates a session for userID and returns the plaintext token for
+// the cookie. The database row is keyed by HashSessionID(token).
+func (a *Service) NewSession(userID int64, ip, ua string) (string, *store.Session, error) {
+	token := RandomToken(sessionTokenBytes)
+	csrf := RandomToken(csrfTokenBytes)
+	sess, err := a.Store.CreateSession(HashSessionID(token), userID, csrf,
+		a.Cfg.Security.SessionTTL(), ip, ua)
+	if err != nil {
+		return "", nil, err
+	}
+	return token, sess, nil
+}
+
+// Logout deletes a session by its stored ID (Session.ID, i.e. the hash).
 func (a *Service) Logout(sessionID string) error {
 	return a.Store.DeleteSession(sessionID)
 }
 
 // LookupSession returns (session, user) for a valid, non-expired cookie value.
-func (a *Service) LookupSession(sid string) (*store.Session, *store.User, error) {
-	sess, err := a.Store.GetSession(sid)
+func (a *Service) LookupSession(token string) (*store.Session, *store.User, error) {
+	id := HashSessionID(token)
+	sess, err := a.Store.GetSession(id)
 	if err != nil {
 		return nil, nil, err
 	}
 	if time.Now().After(sess.ExpiresAt) {
-		_ = a.Store.DeleteSession(sid)
+		_ = a.Store.DeleteSession(id)
 		return nil, nil, store.ErrNotFound
 	}
 	u, err := a.Store.GetUser(sess.UserID)
 	if err != nil {
 		return nil, nil, err
 	}
-	_ = a.Store.TouchSession(sid)
+	_ = a.Store.TouchSession(id)
 	return sess, u, nil
 }
 
