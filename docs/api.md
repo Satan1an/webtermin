@@ -41,6 +41,10 @@ curl -H "Authorization: Bearer $TOKEN" https://my-host:8443/api/system/info
 | GET    | `/system/info`                | viewer  | One-shot hostname, OS, kernel, CPU model, RAM total, uptime. |
 | GET    | `/system/metrics`             | viewer  | Single CPU / mem / disk / net snapshot. |
 | GET    | `/system/metrics/stream`      | viewer  | WebSocket. One JSON sample per 2 s. |
+| GET    | `/system/status`              | viewer  | `{reboot: {required, reasons, running_kernel}, updates: {total, security, packages, checked_at, checking}}`. Updates are checked in the background (cached 1 h); poll while `checking`. |
+| POST   | `/system/reboot`              | admin   | Body must be exactly `{confirm: "reboot"}`. Replies 202, reboots 2 s later. |
+| GET    | `/notify/status`              | admin   | Telegram alerts: `{enabled, events, disk_pct}`. |
+| POST   | `/notify/test`                | admin   | Sends a test alert; 502 with Telegram's error if it fails. |
 
 ## Services (systemd)
 
@@ -149,6 +153,8 @@ Lists are open to any authed user; inspect, logs and lifecycle are operator+. Se
 | GET    | `/packages/status`                | any     | `{manager: "apt"\|"dnf"\|""}` |
 | GET    | `/packages/search?q=<query>`      | any     | |
 | GET    | `/packages/installed`             | operator| |
+| GET    | `/packages/updates`               | any     | Pending updates, security fixes flagged (same object as in `/system/status`). |
+| GET    | `/packages/progress`              | admin   | Live output of the running (or last) operation: `{running, op, names, lines, error}`. |
 | POST   | `/packages/plan`                  | admin   | `{op, names}` → dry run: `{install, upgrade, remove, blocked, warnings}` |
 | POST   | `/packages/install`               | admin   | `{names: [...], confirm_remove: [...]}` |
 | POST   | `/packages/remove`                | admin   | |
@@ -175,7 +181,7 @@ kill dpkg half way.
 
 | Method | Path                                          | Role  | Notes |
 |--------|-----------------------------------------------|-------|-------|
-| GET    | `/network/interfaces`                         | admin | Includes IP / DNS / method per device. |
+| GET    | `/network/interfaces`                         | admin | Includes IP / DNS / method per device. Without NetworkManager: `{available: false, readonly: true, manager, interfaces}` built from `ip`. |
 | GET    | `/network/hostname`                           | admin | |
 | POST   | `/network/hostname`                           | admin | `{hostname}` |
 | POST   | `/network/interfaces/{name}/static`           | admin | `{address, gateway?, dns: []}` |

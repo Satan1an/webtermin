@@ -69,6 +69,37 @@ jobs:
           path: /tmp/webtermin*
           retention-days: 7
 
+  e2e:
+    name: e2e (Playwright, systemd stand)
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      # Host binary from the build job, SPA already embedded.
+      - uses: actions/download-artifact@v7
+        with:
+          name: webtermin-snapshot-${{ github.sha }}
+          path: ${{ runner.temp }}/bin
+
+      - name: Run e2e suite
+        env:
+          WT_BINARY: ${{ runner.temp }}/bin/webtermin
+        run: |
+          chmod +x "$WT_BINARY"
+          e2e/run.sh
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report-${{ github.sha }}
+          path: |
+            e2e/playwright-report
+            e2e/test-results
+          retention-days: 14
+
   static-analysis:
     name: staticcheck + gosec + govulncheck
     runs-on: ubuntu-latest

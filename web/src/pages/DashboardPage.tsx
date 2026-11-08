@@ -22,6 +22,7 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { api, wsURL } from "@/lib/api";
 import { formatBytes, formatDuration } from "@/lib/utils";
+import { HostStatus } from "@/components/HostStatus";
 
 interface SystemInfo {
   hostname: string;
@@ -125,6 +126,8 @@ export function DashboardPage() {
           {info?.kernel_version ?? ""}
         </p>
       </div>
+
+      <HostStatus />
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard

@@ -64,7 +64,26 @@
 
 ## Install
 
-### Debian / Ubuntu / OrangePi / Raspberry Pi (.deb)
+### Debian / Ubuntu / OrangePi / Raspberry Pi — APT repository
+
+Updates then arrive with `apt upgrade` like any other package:
+
+```bash
+sudo install -d -m 0755 /etc/apt/keyrings
+curl -fsSL https://satan1an.github.io/webtermin/webtermin.gpg | sudo tee /etc/apt/keyrings/webtermin.gpg >/dev/null
+sudo tee /etc/apt/sources.list.d/webtermin.sources >/dev/null <<'EOF'
+Types: deb
+URIs: https://satan1an.github.io/webtermin
+Suites: stable
+Components: main
+Signed-By: /etc/apt/keyrings/webtermin.gpg
+EOF
+sudo apt update && sudo apt install webtermin
+```
+
+Details, downgrades and unattended-upgrades: [docs/apt-repo.md](docs/apt-repo.md).
+
+### Single .deb
 
 Grab the package for your architecture from the [latest release](https://github.com/Satan1an/webtermin/releases/latest):
 
@@ -114,6 +133,21 @@ The default config lives at `/etc/webtermin/config.yaml` (or `./config.yaml` whe
 | `terminal.default_shell` | _empty_ | Fallback shell for the web terminal. |
 
 After editing: `sudo systemctl restart webtermin`.
+
+### Telegram alerts
+
+Create a bot with [@BotFather](https://t.me/BotFather), send it any message, read your chat id from `https://api.telegram.org/bot<TOKEN>/getUpdates`, then:
+
+```yaml
+notify:
+  telegram:
+    bot_token: "123456:ABC…"
+    chat_id: "123456789"
+  events: []      # empty = all: login, lockout, denied, reboot, setup, service_failed, disk, updates
+  disk_pct: 90
+```
+
+Restart webtermin and press **Send test** on the Audit page.
 
 ## Documentation
 

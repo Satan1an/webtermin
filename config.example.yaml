@@ -43,3 +43,15 @@ oidc:
   client_secret: ""
   redirect_url: ""        # e.g. https://webtermin.example.com/api/auth/oidc/callback
   default_role: "viewer"  # role assigned to first-time OIDC sign-ins
+
+# Telegram alerts. Create a bot with @BotFather, send it a message, then get
+# your chat id from https://api.telegram.org/bot<TOKEN>/getUpdates. Keep this
+# file mode 0640 root — the token lets anyone post as the bot.
+notify:
+  telegram:
+    bot_token: ""
+    chat_id: ""
+  # Empty = all: login (new IP), lockout, denied, reboot, setup,
+  # service_failed, disk, updates.
+  events: []
+  disk_pct: 90

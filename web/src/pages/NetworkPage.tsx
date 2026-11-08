@@ -31,6 +31,8 @@ interface Iface {
 
 export function NetworkPage() {
   const [available, setAvailable] = useState<boolean | null>(null);
+  const [readonly, setReadonly] = useState(false);
+  const [manager, setManager] = useState("");
   const [ifaces, setIfaces] = useState<Iface[]>([]);
   const [hostname, setHostname] = useState("");
   const [editingHostname, setEditingHostname] = useState(false);
@@ -39,8 +41,12 @@ export function NetworkPage() {
 
   const load = async () => {
     try {
-      const r = await api.get<{ available: boolean; interfaces: Iface[] }>("/api/network/interfaces");
+      const r = await api.get<{ available: boolean; readonly?: boolean; manager?: string; interfaces: Iface[] }>(
+        "/api/network/interfaces",
+      );
       setAvailable(r.available);
+      setReadonly(!!r.readonly);
+      setManager(r.manager ?? "");
       setIfaces(r.interfaces ?? []);
       const h = await api.get<{ hostname: string }>("/api/network/hostname");
       setHostname(h.hostname);
@@ -63,7 +69,7 @@ export function NetworkPage() {
   };
 
   if (available === null) return <div className="text-sm text-muted-foreground">Loading…</div>;
-  if (!available) {
+  if (!available && !readonly) {
     return (
       <MissingTool
         icon={NetIcon}
@@ -80,7 +86,11 @@ export function NetworkPage() {
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Network</h1>
         <p className="text-sm text-muted-foreground">
-          Managed via <code>nmcli</code>. Changes apply immediately AND persist — a bad gateway can lock you out, so double-check before saving.
+          {readonly ? (
+            <>Managed by <code>{manager}</code> — shown read-only from <code>ip</code>. webtermin edits the network only through NetworkManager.</>
+          ) : (
+            <>Managed via <code>nmcli</code>. Changes apply immediately AND persist — a bad gateway can lock you out, so double-check before saving.</>
+          )}
         </p>
       </div>
 
@@ -150,9 +160,11 @@ export function NetworkPage() {
                   <Badge variant="muted">{i.ipv4_method || "auto"}</Badge>
                 </div>
                 <div className="col-span-1 flex justify-end">
-                  <Button size="icon" variant="ghost" title="Edit" onClick={() => setEditFor(i)}>
-                    <Pencil className="h-4 w-4" />
-                  </Button>
+                  {!readonly && (
+                    <Button size="icon" variant="ghost" title="Edit" onClick={() => setEditFor(i)}>
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
               </div>
             ))}
@@ -163,6 +175,16 @@ export function NetworkPage() {
         </CardContent>
       </Card>
 
+      {readonly && (
+        <MissingTool
+          icon={NetIcon}
+          title="Want to edit interfaces from the panel? That needs NetworkManager."
+          apt="network-manager"
+          dnf="NetworkManager"
+          onInstalled={load}
+        />
+      )}
+
       <EditDialog target={editFor} onClose={() => setEditFor(null)} onSaved={load} />
     </div>
   );
@@ -171,6 +193,8 @@ export function NetworkPage() {
 function StateBadge({ state }: { state: string }) {
   const s = state.toLowerCase();
   if (s === "connected" || s === "100") return <Badge variant="success">connected</Badge>;
+  if (s === "up") return <Badge variant="success">up</Badge>;
+  if (s === "down") return <Badge variant="muted">down</Badge>;
   if (s.includes("disconnect")) return <Badge variant="muted">disconnected</Badge>;
   if (s === "unavailable") return <Badge variant="destructive">unavailable</Badge>;
   return <Badge variant="warning">{state}</Badge>;

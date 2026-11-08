@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import Editor from "@monaco-editor/react";
+import "@/lib/monaco";
 import {
   Boxes,
   ChevronRight,

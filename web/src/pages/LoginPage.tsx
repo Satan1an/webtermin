@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { motion } from "framer-motion";
 import { Key, Lock, ShieldCheck, TerminalSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";

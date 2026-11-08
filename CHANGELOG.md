@@ -10,12 +10,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Network, Firewall and WireGuard pages offer a one-click install of the missing tool (`network-manager`, `ufw`, `wireguard-tools`) for admins; no restart needed.
 - Package operations show a dry-run plan (install/upgrade/remove) before running; `POST /api/packages/plan`.
+- Dashboard "needs attention" row: reboot required (Debian flag, newer kernel in `/boot`, `needs-restarting`) with an admin Reboot button, and pending updates with security fixes flagged and a one-click reviewed upgrade; `GET /api/system/status`, `POST /api/system/reboot`, `GET /api/packages/updates`.
+- Live apt/dnf output in the package dialog while an operation runs; `GET /api/packages/progress`.
+- Network page shows a read-only view (from `ip`) on hosts managed by systemd-networkd, netplan or ifupdown instead of asking to install NetworkManager.
+- Telegram alerts (`notify.telegram` in config): sign-in from a new IP, lockout, refused actions, reboot, failed/recovered systemd units, disk over threshold, new security updates. Test button on the Audit page; `GET /api/notify/status`, `POST /api/notify/test`.
+- Services page: Active / Failed / Inactive / All tabs, failed units first.
+- Signed APT repository on GitHub Pages, built by the release workflow ([docs/apt-repo.md](docs/apt-repo.md)).
+- End-to-end tests (Playwright against a real systemd + Docker stand) in CI; `e2e/run.sh` runs them locally.
+
+### Changed
+- Frontend: pages are lazy-loaded (entry chunk 1.26 MB → 398 kB), React Router 7, Vite 8. Inter font is bundled instead of loaded from rsms.me.
 
 ### Security
 - Package safety checks, enforced server-side: never remove core/essential packages, the running kernel, webtermin itself, bootloader/board packages or the active network stack; refuse installs with < 500 MB free; removals must be explicitly confirmed; installs run with `--no-remove`; warn before NetworkManager takes over a networkd/ifupdown/netplan host.
 - Package operations are serialised, wait for the dpkg lock, keep existing config files (`--force-confold`) and are detached from the HTTP request so a closed tab cannot kill dpkg mid-install.
 
 ### Fixed
+- The code editor in Files and Stacks never loaded: Monaco came from cdn.jsdelivr.net, which the panel's own CSP blocks. It is now bundled (lazy, JSON + syntax highlighting for the languages the file manager detects).
+- Stack deploy pulls missing images first, and does so before removing the running containers, so a bad tag no longer fails with "No such image" or takes the old stack down.
 - Docker container list no longer shows each published port twice (IPv4 + IPv6 bindings).
 - Audit entries for blocked package operations now record the reason.
 

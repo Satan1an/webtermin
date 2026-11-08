@@ -64,7 +64,26 @@
 
 ## Установка
 
-### Debian / Ubuntu / OrangePi / Raspberry Pi (.deb)
+### Debian / Ubuntu / OrangePi / Raspberry Pi — APT-репозиторий
+
+Обновления приходят через `apt upgrade`, как у любого пакета:
+
+```bash
+sudo install -d -m 0755 /etc/apt/keyrings
+curl -fsSL https://satan1an.github.io/webtermin/webtermin.gpg | sudo tee /etc/apt/keyrings/webtermin.gpg >/dev/null
+sudo tee /etc/apt/sources.list.d/webtermin.sources >/dev/null <<'EOF'
+Types: deb
+URIs: https://satan1an.github.io/webtermin
+Suites: stable
+Components: main
+Signed-By: /etc/apt/keyrings/webtermin.gpg
+EOF
+sudo apt update && sudo apt install webtermin
+```
+
+Подробности, откат версии и unattended-upgrades — в [docs/apt-repo.md](docs/apt-repo.md).
+
+### Отдельный .deb
 
 Скачайте пакет под свою архитектуру из [последнего релиза](https://github.com/Satan1an/webtermin/releases/latest):
 
@@ -114,6 +133,21 @@ make build-arm64   # кросс-компиляция aarch64 (OrangePi / RPi)
 | `terminal.default_shell` | _пусто_ | Fallback-shell для веб-терминала. |
 
 После правки: `sudo systemctl restart webtermin`.
+
+### Уведомления в Telegram
+
+Создайте бота через [@BotFather](https://t.me/BotFather), напишите ему любое сообщение, возьмите chat id из `https://api.telegram.org/bot<TOKEN>/getUpdates` и добавьте в конфиг:
+
+```yaml
+notify:
+  telegram:
+    bot_token: "123456:ABC…"
+    chat_id: "123456789"
+  events: []      # пусто = все: login, lockout, denied, reboot, setup, service_failed, disk, updates
+  disk_pct: 90
+```
+
+Перезапустите webtermin и нажмите **Send test** на странице Audit.
 
 ## Документация
 

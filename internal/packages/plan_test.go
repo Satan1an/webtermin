@@ -115,3 +115,49 @@ func TestAssess_LowDiskBlocksInstall(t *testing.T) {
 		t.Errorf("removal frees space and must not be blocked by low disk, got %+v", p.Blocked)
 	}
 }
+
+func TestParseAptUpgradable(t *testing.T) {
+	out := `Listing...
+libc6/stable-security 2.41-12 arm64 [upgradable from: 2.41-11]
+docker-ce/trixie 5:29.9.3-1~debian.13~trixie arm64 [upgradable from: 5:29.9.1-1~debian.13~trixie]
+`
+	u := parseAptUpgradable(out)
+	if len(u) != 2 || u[0].Name != "libc6" || !u[0].Security || u[0].Current != "2.41-11" || u[0].Candidate != "2.41-12" {
+		t.Fatalf("libc6 parsed wrong: %+v", u)
+	}
+	if u[1].Name != "docker-ce" || u[1].Security {
+		t.Errorf("docker-ce parsed wrong: %+v", u[1])
+	}
+}
+
+func TestParseDnfCheckUpdate(t *testing.T) {
+	out := "\nopenssl.x86_64   1:3.2.2-6.el9   baseos\nopenssl-libs.x86_64   1:3.2.2-6.el9   baseos\ncurl.x86_64  7.76.1-30.el9  baseos\n"
+	sec := "RHSA-2024:1 Important/Sec. openssl-libs-1:3.2.2-6.el9.x86_64\n"
+	u := parseDnfCheckUpdate(out, sec)
+	if len(u) != 3 {
+		t.Fatalf("want 3 updates, got %+v", u)
+	}
+	if u[0].Security || !u[1].Security || u[2].Security {
+		t.Errorf("security flags wrong: %+v", u)
+	}
+}
+
+func TestProgressBufferSplitsCarriageReturns(t *testing.T) {
+	var b progressBuf
+	b.start("install", []string{"htop"})
+	_, _ = b.Write([]byte("Get:1 htop\r0% [Working]\r50% [1 htop]\nSetting up htop"))
+	b.end(nil)
+	if got := b.cur.Lines; len(got) != 4 || got[3] != "Setting up htop" || b.cur.Running {
+		t.Errorf("lines = %q running=%v", got, b.cur.Running)
+	}
+}
+
+func TestProgressBufferCollapsesPercentCounters(t *testing.T) {
+	var b progressBuf
+	b.start("install", nil)
+	_, _ = b.Write([]byte("(Reading database ... 5%\r(Reading database ... 50%\r(Reading database ... 100%\r(Reading database ... 9363 files.)\nUnpacking htop\n"))
+	want := []string{"(Reading database ... 100%", "(Reading database ... 9363 files.)", "Unpacking htop"}
+	if got := b.cur.Lines; !slices.Equal(got, want) {
+		t.Errorf("lines = %q, want %q", got, want)
+	}
+}

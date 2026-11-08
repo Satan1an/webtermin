@@ -16,6 +16,7 @@ import (
 	"github.com/Satan1an/webtermin/internal/audit"
 	"github.com/Satan1an/webtermin/internal/auth"
 	"github.com/Satan1an/webtermin/internal/config"
+	"github.com/Satan1an/webtermin/internal/notify"
 	"github.com/Satan1an/webtermin/internal/store"
 )
 
@@ -34,6 +35,8 @@ type Server struct {
 	// setupMu also serialises the count-then-create check.
 	setupMu    sync.Mutex
 	setupToken string
+
+	Notify *notify.Notifier // nil when Telegram isn't configured
 }
 
 func New(cfg *config.Config, st *store.Store, lg *slog.Logger, webFS fs.FS) *Server {
@@ -45,6 +48,13 @@ func New(cfg *config.Config, st *store.Store, lg *slog.Logger, webFS fs.FS) *Ser
 		Log:   lg,
 		WebFS: webFS,
 	}
+	s.Notify = notify.New(notify.Config{
+		BotToken: cfg.Notify.Telegram.BotToken,
+		ChatID:   cfg.Notify.Telegram.ChatID,
+		Events:   cfg.Notify.Events,
+		DiskPct:  cfg.Notify.DiskPct,
+	}, lg)
+	s.Audit.OnWrite = s.alertOnAudit
 	if n, err := st.CountUsers(); err != nil || n == 0 {
 		s.setupToken = auth.RandomToken(16)
 		lg.Warn("first-run setup required: enter this one-time token on the setup page",
@@ -75,6 +85,12 @@ func (s *Server) Run(ctx context.Context) error {
 		return err
 	}
 	s.Log.Info("tls certificate ready", "cert", certPath, "key", keyPath)
+
+	if s.Notify.Enabled() {
+		go s.Notify.Run(ctx)
+		go s.monitor(ctx)
+		s.Log.Info("telegram alerts enabled", "events", s.Notify.Events())
+	}
 
 	mux := s.routes()
 	s.HTTPSrv = &http.Server{

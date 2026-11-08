@@ -30,6 +30,14 @@ func (s *Server) handlePackagesSearch(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, pkgs)
 }
 
+func (s *Server) handlePackagesProgress(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, 200, packages.CurrentProgress())
+}
+
+func (s *Server) handlePackagesUpdates(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, 200, packages.GetUpdates())
+}
+
 func (s *Server) handlePackagesInstalled(w http.ResponseWriter, r *http.Request) {
 	pkgs, err := packages.ListInstalled(r.Context())
 	if err != nil {

@@ -12,6 +12,7 @@ import {
   Upload,
 } from "lucide-react";
 import Editor from "@monaco-editor/react";
+import "@/lib/monaco";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

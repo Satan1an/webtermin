@@ -5,13 +5,15 @@ import path from "node:path";
 export default defineConfig({
   plugins: [react()],
   resolve: {
-    alias: { "@": path.resolve(__dirname, "./src") },
+    alias: { "@": path.resolve(import.meta.dirname, "./src") },
   },
   build: {
     outDir: "dist",
     emptyOutDir: true,
     sourcemap: false,
-    chunkSizeWarningLimit: 1500,
+    // The Monaco chunk (~3.6 MB) is lazy-loaded by Files/Stacks only; every
+    // other chunk stays well under Vite's 500 kB default.
+    chunkSizeWarningLimit: 4000,
   },
   server: {
     port: 5173,

@@ -1,4 +1,5 @@
-import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Suspense } from "react";
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Activity,
@@ -166,7 +167,11 @@ export function AppLayout() {
               transition={{ duration: 0.18, ease: "easeOut" }}
               className="p-6 md:p-8"
             >
-              <Outlet />
+              <Suspense
+                fallback={<div className="text-sm text-muted-foreground">Loading…</div>}
+              >
+                <Outlet />
+              </Suspense>
             </motion.div>
           </AnimatePresence>
         </div>

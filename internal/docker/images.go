@@ -2,6 +2,7 @@ package docker
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -42,6 +43,42 @@ func (c *Client) PullImage(ctx context.Context, ref string) (io.ReadCloser, erro
 		return nil, fmt.Errorf("pull %s: %d %s", ref, res.StatusCode, strings.TrimSpace(string(buf)))
 	}
 	return res.Body, nil
+}
+
+// HasImage reports whether ref is present locally.
+func (c *Client) HasImage(ctx context.Context, ref string) bool {
+	if !ValidImageRef(ref) {
+		return false
+	}
+	return c.request(ctx, http.MethodGet, "/images/"+url.PathEscape(ref)+"/json", nil, nil) == nil
+}
+
+// EnsureImage pulls ref unless it is already present (compose's default
+// `pull_policy: missing`). The engine reports pull failures inside the
+// progress stream with HTTP 200, so the stream is scanned for an error doc.
+func (c *Client) EnsureImage(ctx context.Context, ref string) error {
+	if c.HasImage(ctx, ref) {
+		return nil
+	}
+	body, err := c.PullImage(ctx, ref)
+	if err != nil {
+		return err
+	}
+	defer body.Close()
+	dec := json.NewDecoder(body)
+	for {
+		var msg struct {
+			Error string `json:"error"`
+		}
+		if err := dec.Decode(&msg); err == io.EOF {
+			return nil
+		} else if err != nil {
+			return fmt.Errorf("pull %s: %w", ref, err)
+		}
+		if msg.Error != "" {
+			return fmt.Errorf("pull %s: %s", ref, msg.Error)
+		}
+	}
 }
 
 // RemoveImage deletes an image by id or `repo:tag`.

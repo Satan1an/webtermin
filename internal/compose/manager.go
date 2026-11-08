@@ -74,6 +74,16 @@ func (m *Manager) Deploy(ctx context.Context, stackName string, file *File) ([]s
 		return nil, err
 	}
 
+	// Pull missing images before touching the running containers, so a typo
+	// in a tag or an unreachable registry leaves the old stack up.
+	for _, serviceName := range order {
+		if img := file.Services[serviceName].Image; img != "" {
+			if err := m.D.EnsureImage(ctx, img); err != nil {
+				return nil, fmt.Errorf("service %s: %w", serviceName, err)
+			}
+		}
+	}
+
 	// 4. Remove any existing containers for this stack — simpler than diff.
 	if err := m.RemoveContainers(ctx, stackName, true); err != nil {
 		return nil, err

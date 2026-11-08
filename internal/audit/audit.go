@@ -10,6 +10,8 @@ import (
 type Logger struct {
 	Store *store.Store
 	Log   *slog.Logger
+	// OnWrite, if set, sees every event after it is stored (used for alerts).
+	OnWrite func(Event)
 }
 
 func New(s *store.Store, l *slog.Logger) *Logger { return &Logger{Store: s, Log: l} }
@@ -41,6 +43,9 @@ func (l *Logger) Write(e Event) {
 		Detail:   e.Detail,
 	}); err != nil {
 		l.Log.Error("audit write failed", "err", err, "action", e.Action)
+	}
+	if l.OnWrite != nil {
+		l.OnWrite(e)
 	}
 	l.Log.Info("audit",
 		"action", e.Action,

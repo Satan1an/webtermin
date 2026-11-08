@@ -131,7 +131,11 @@ func Execute(ctx context.Context, op string, names, confirmRemove []string) (*Pl
 	if len(names) == 0 && op == "upgrade" {
 		op = "upgrade-all"
 	}
-	return p, run(runCtx, op, len(p.Remove) > 0, names...)
+	progress.start(op, names)
+	err = run(runCtx, op, len(p.Remove) > 0, names...)
+	progress.end(err)
+	invalidateUpdates()
+	return p, err
 }
 
 func assess(p *Plan, sys sysInfo) {

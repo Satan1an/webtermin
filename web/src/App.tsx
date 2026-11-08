@@ -1,28 +1,31 @@
-import { useEffect, useState } from "react";
-import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
+import { lazy, useEffect, useState } from "react";
+import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router";
 import { api } from "@/lib/api";
 import { useAuth, type Role } from "@/store/auth";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { LoginPage } from "@/pages/LoginPage";
 import { SetupPage } from "@/pages/SetupPage";
-import { DashboardPage } from "@/pages/DashboardPage";
-import { ServicesPage } from "@/pages/ServicesPage";
-import { UsersPage } from "@/pages/UsersPage";
-import { FilesPage } from "@/pages/FilesPage";
-import { TerminalPage } from "@/pages/TerminalPage";
-import { AuditPage } from "@/pages/AuditPage";
-import { PanelUsersPage } from "@/pages/PanelUsersPage";
-import { ApiTokensPage } from "@/pages/ApiTokensPage";
-import { CronPage } from "@/pages/CronPage";
-import { FirewallPage } from "@/pages/FirewallPage";
-import { DockerPage } from "@/pages/DockerPage";
-import { StacksPage } from "@/pages/StacksPage";
-import { BackupPage } from "@/pages/BackupPage";
-import { PackagesPage } from "@/pages/PackagesPage";
-import { WireGuardPage } from "@/pages/WireGuardPage";
-import { NetworkPage } from "@/pages/NetworkPage";
 import { Toaster } from "@/components/ui/toast";
 import { motion } from "framer-motion";
+
+// Route pages are code-split so heavy deps (Monaco, xterm, recharts) load
+// only when the page that needs them is opened.
+const DashboardPage = lazy(() => import("@/pages/DashboardPage").then((m) => ({ default: m.DashboardPage })));
+const ServicesPage = lazy(() => import("@/pages/ServicesPage").then((m) => ({ default: m.ServicesPage })));
+const UsersPage = lazy(() => import("@/pages/UsersPage").then((m) => ({ default: m.UsersPage })));
+const FilesPage = lazy(() => import("@/pages/FilesPage").then((m) => ({ default: m.FilesPage })));
+const TerminalPage = lazy(() => import("@/pages/TerminalPage").then((m) => ({ default: m.TerminalPage })));
+const AuditPage = lazy(() => import("@/pages/AuditPage").then((m) => ({ default: m.AuditPage })));
+const PanelUsersPage = lazy(() => import("@/pages/PanelUsersPage").then((m) => ({ default: m.PanelUsersPage })));
+const ApiTokensPage = lazy(() => import("@/pages/ApiTokensPage").then((m) => ({ default: m.ApiTokensPage })));
+const CronPage = lazy(() => import("@/pages/CronPage").then((m) => ({ default: m.CronPage })));
+const FirewallPage = lazy(() => import("@/pages/FirewallPage").then((m) => ({ default: m.FirewallPage })));
+const DockerPage = lazy(() => import("@/pages/DockerPage").then((m) => ({ default: m.DockerPage })));
+const StacksPage = lazy(() => import("@/pages/StacksPage").then((m) => ({ default: m.StacksPage })));
+const BackupPage = lazy(() => import("@/pages/BackupPage").then((m) => ({ default: m.BackupPage })));
+const PackagesPage = lazy(() => import("@/pages/PackagesPage").then((m) => ({ default: m.PackagesPage })));
+const WireGuardPage = lazy(() => import("@/pages/WireGuardPage").then((m) => ({ default: m.WireGuardPage })));
+const NetworkPage = lazy(() => import("@/pages/NetworkPage").then((m) => ({ default: m.NetworkPage })));
 
 export default function App() {
   const auth = useAuth();

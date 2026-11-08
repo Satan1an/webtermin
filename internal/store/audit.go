@@ -58,3 +58,14 @@ func (s *Store) ListAudit(limit int) ([]AuditEntry, error) {
 	}
 	return out, rows.Err()
 }
+
+// CountLogins counts successful sign-ins (password or OIDC) by username from
+// ip. Used to tell a first-seen address from a familiar one.
+func (s *Store) CountLogins(username, ip string) (int, error) {
+	var n int
+	err := s.DB.QueryRow(
+		`SELECT COUNT(*) FROM audit_log
+		 WHERE action IN ('auth.login', 'auth.login.oidc') AND outcome = 'ok' AND username = ? AND ip = ?`,
+		username, ip).Scan(&n)
+	return n, err
+}

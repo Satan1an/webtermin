@@ -58,6 +58,10 @@ func (s *Server) routes() http.Handler {
 	authed.HandleFunc("GET /api/system/info", s.handleSystemInfo)
 	authed.HandleFunc("GET /api/system/metrics", s.handleSystemMetrics)
 	authed.HandleFunc("GET /api/system/metrics/stream", s.handleSystemMetricsStream)
+	authed.HandleFunc("GET /api/system/status", s.handleSystemStatus)
+	authed.HandleFunc("POST /api/system/reboot", s.protected(auth.RoleAdmin, s.handleSystemReboot))
+	authed.HandleFunc("GET /api/notify/status", s.protected(auth.RoleAdmin, s.handleNotifyStatus))
+	authed.HandleFunc("POST /api/notify/test", s.protected(auth.RoleAdmin, s.handleNotifyTest))
 
 	// systemd — list/journal anyone authed; start/stop is an Operator action.
 	authed.HandleFunc("GET /api/services", s.handleServicesList)
@@ -162,6 +166,8 @@ func (s *Server) routes() http.Handler {
 	authed.HandleFunc("GET /api/packages/status", s.handlePackagesStatus)
 	authed.HandleFunc("GET /api/packages/search", s.handlePackagesSearch)
 	authed.HandleFunc("GET /api/packages/installed", s.protected(auth.RoleOperator, s.handlePackagesInstalled))
+	authed.HandleFunc("GET /api/packages/updates", s.handlePackagesUpdates)
+	authed.HandleFunc("GET /api/packages/progress", s.protected(auth.RoleAdmin, s.handlePackagesProgress))
 	authed.HandleFunc("POST /api/packages/plan", s.protected(auth.RoleAdmin, s.handlePackagesPlan))
 	authed.HandleFunc("POST /api/packages/install", s.protected(auth.RoleAdmin, s.handlePackagesInstall))
 	authed.HandleFunc("POST /api/packages/remove", s.protected(auth.RoleAdmin, s.handlePackagesRemove))

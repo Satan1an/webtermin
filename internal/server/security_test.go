@@ -202,3 +202,20 @@ func TestRBAC_PackagePlanIsAdminOnly(t *testing.T) {
 		t.Fatalf("operator plan should 403, got %d", res.StatusCode)
 	}
 }
+
+func TestReboot_AdminOnlyAndNeedsConfirm(t *testing.T) {
+	srv, h := newTestServer(t)
+	opCookie, opCSRF := loginAs(t, srv, h, "op1", "operator")
+	res := doJSON(t, h, http.MethodPost, "/api/system/reboot", map[string]string{"confirm": "reboot"},
+		map[string]string{auth.CSRFHeaderName: opCSRF}, []*http.Cookie{opCookie})
+	if res.StatusCode != http.StatusForbidden {
+		t.Fatalf("operator reboot should 403, got %d", res.StatusCode)
+	}
+	// Never send the real confirm as admin here: it would reboot the test host.
+	adCookie, adCSRF := loginAs(t, srv, h, "admin1", "admin")
+	res = doJSON(t, h, http.MethodPost, "/api/system/reboot", map[string]string{"confirm": "yes"},
+		map[string]string{auth.CSRFHeaderName: adCSRF}, []*http.Cookie{adCookie})
+	if res.StatusCode != http.StatusBadRequest {
+		t.Fatalf("reboot without exact confirm should 400, got %d", res.StatusCode)
+	}
+}

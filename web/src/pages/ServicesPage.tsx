@@ -35,6 +35,7 @@ interface Unit {
 export function ServicesPage() {
   const [units, setUnits] = useState<Unit[]>([]);
   const [filter, setFilter] = useState("");
+  const [stateTab, setStateTab] = useState<StateTab>("active");
   const [busy, setBusy] = useState<string | null>(null);
   const [journal, setJournal] = useState<string | null>(null);
   const canWrite = useCanWrite();
@@ -54,13 +55,20 @@ export function ServicesPage() {
     return () => clearInterval(t);
   }, []);
 
+  const counts = useMemo(() => {
+    const c: Record<StateTab, number> = { active: 0, failed: 0, inactive: 0, all: units.length };
+    for (const u of units) c[stateOf(u)]++;
+    return c;
+  }, [units]);
+
+  // Failed first, then running, then the rest; alphabetical within a group.
   const filtered = useMemo(() => {
     const q = filter.trim().toLowerCase();
-    if (!q) return units;
-    return units.filter(
-      (u) => u.name.toLowerCase().includes(q) || u.description.toLowerCase().includes(q),
-    );
-  }, [units, filter]);
+    return units
+      .filter((u) => stateTab === "all" || stateOf(u) === stateTab)
+      .filter((u) => !q || u.name.toLowerCase().includes(q) || u.description.toLowerCase().includes(q))
+      .sort((a, b) => STATE_ORDER[stateOf(a)] - STATE_ORDER[stateOf(b)] || a.name.localeCompare(b.name));
+  }, [units, filter, stateTab]);
 
   const act = async (name: string, action: string) => {
     setBusy(name + action);
@@ -81,8 +89,8 @@ export function ServicesPage() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Services</h1>
           <p className="text-sm text-muted-foreground">
-            {units.length} systemd units · {units.filter((u) => u.active_state === "active").length}{" "}
-            active
+            {units.length} systemd units · {counts.active} active
+            {counts.failed > 0 && <span className="text-destructive"> · {counts.failed} failed</span>}
           </p>
         </div>
         <div className="relative w-72 max-w-full">
@@ -94,6 +102,20 @@ export function ServicesPage() {
             className="pl-9"
           />
         </div>
+      </div>
+
+      <div className="rounded-md border border-border p-0.5 flex gap-0.5 w-fit">
+        {(["active", "failed", "inactive", "all"] as const).map((t) => (
+          <button
+            key={t}
+            onClick={() => setStateTab(t)}
+            className={`px-3 py-1.5 text-sm rounded-sm transition-colors capitalize ${
+              stateTab === t ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"
+            } ${t === "failed" && counts.failed > 0 && stateTab !== t ? "text-destructive" : ""}`}
+          >
+            {t} ({counts[t]})
+          </button>
+        ))}
       </div>
 
       <Card>
@@ -239,4 +261,16 @@ function JournalView({ unit }: { unit: string }) {
       )}
     </div>
   );
+}
+
+type StateTab = "active" | "failed" | "inactive" | "all";
+
+const STATE_ORDER: Record<StateTab, number> = { failed: 0, active: 1, inactive: 2, all: 3 };
+
+// activating/reloading count as active; everything not running or failed
+// (inactive, dead, not-found) lands in "inactive".
+function stateOf(u: Unit): Exclude<StateTab, "all"> {
+  if (u.active_state === "failed") return "failed";
+  if (u.active_state === "active" || u.active_state === "activating" || u.active_state === "reloading") return "active";
+  return "inactive";
 }

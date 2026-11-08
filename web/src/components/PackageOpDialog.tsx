@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { AlertTriangle, Ban } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { AlertTriangle, Ban, CheckCircle2, Loader2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -28,6 +28,14 @@ interface Pending {
   names: string[];
   plan: Plan;
   onDone?: () => void | Promise<void>;
+  // Set once confirmed: the dialog stays open and streams apt/dnf output.
+  phase?: "running" | "ok" | "failed";
+  error?: string;
+}
+
+interface Progress {
+  running: boolean;
+  lines: string[] | null;
 }
 
 // usePackageOp dry-runs a package operation on the server, shows what it will
@@ -36,6 +44,23 @@ interface Pending {
 export function usePackageOp() {
   const [pending, setPending] = useState<Pending | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  const [lines, setLines] = useState<string[]>([]);
+  const logRef = useRef<HTMLPreElement>(null);
+  const running = pending?.phase === "running";
+
+  // Poll the server-side output buffer while the POST is in flight.
+  useEffect(() => {
+    if (!running) return;
+    const tick = () =>
+      api.get<Progress>("/api/packages/progress").then((p) => setLines(p.lines ?? [])).catch(() => {});
+    void tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [running]);
+
+  useEffect(() => {
+    logRef.current?.scrollTo({ top: logRef.current.scrollHeight });
+  }, [lines]);
 
   const start = async (op: PkgOp, names: string[], opts: { onDone?: () => void | Promise<void> } = {}) => {
     setBusy(names.join(",") + op);
@@ -52,15 +77,22 @@ export function usePackageOp() {
   const confirm = async () => {
     if (!pending) return;
     const { op, names, plan, onDone } = pending;
-    setPending(null);
+    const label = names.length ? names.join(", ") : "all packages";
+    setLines([]);
+    setPending({ ...pending, phase: "running" });
     setBusy(names.join(",") + op);
     try {
       await api.post(`/api/packages/${op}`, { names, confirm_remove: plan.remove ?? [] });
-      toast.success(`${op} ✓`, names.join(", "));
+      setPending((p) => p && { ...p, phase: "ok" });
+      toast.success(`${op} ✓`, label);
       await onDone?.();
     } catch (e) {
-      if (e instanceof ApiError) toast.error(`${op} failed`, e.message);
+      const msg = e instanceof ApiError ? e.message : String(e);
+      setPending((p) => p && { ...p, phase: "failed", error: msg });
+      toast.error(`${op} failed`, msg);
     } finally {
+      // One last fetch so the log ends with apt's final lines.
+      await api.get<Progress>("/api/packages/progress").then((p) => setLines(p.lines ?? [])).catch(() => {});
       setBusy(null);
     }
   };
@@ -70,15 +102,31 @@ export function usePackageOp() {
   const warnings = plan?.warnings ?? [];
 
   const dialog = (
-    <Dialog open={!!pending} onOpenChange={(o) => !o && setPending(null)}>
-      <DialogContent>
+    <Dialog open={!!pending} onOpenChange={(o) => !o && !running && setPending(null)}>
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>
-            {pending?.op} {pending?.names.join(", ")}
+          <DialogTitle className="flex items-center gap-2">
+            {pending?.phase === "running" && <Loader2 className="h-4 w-4 animate-spin text-primary" />}
+            {pending?.phase === "ok" && <CheckCircle2 className="h-4 w-4 text-success" />}
+            {pending?.phase === "failed" && <XCircle className="h-4 w-4 text-destructive" />}
+            {pending?.op} {pending?.names.length ? pending.names.join(", ") : "all packages"}
           </DialogTitle>
-          <DialogDescription>Dry run of what the package manager will do.</DialogDescription>
+          <DialogDescription>
+            {pending?.phase
+              ? running ? "Running — you can keep this open or close the tab; the server finishes the job." : "Finished."
+              : "Dry run of what the package manager will do."}
+          </DialogDescription>
         </DialogHeader>
-        {plan && (
+        {pending?.phase && (
+          <pre
+            ref={logRef}
+            className="max-h-72 overflow-auto rounded-md bg-muted/50 p-3 text-xs font-mono leading-relaxed whitespace-pre-wrap"
+          >
+            {lines.length ? lines.join("\n") : "Starting…"}
+            {pending.error && `\n\n${pending.error}`}
+          </pre>
+        )}
+        {plan && !pending?.phase && (
           <div className="space-y-3 text-sm">
             <PkgList label="Install" variant="success" names={plan.install} />
             <PkgList label="Upgrade" variant="default" names={plan.upgrade} />
@@ -103,14 +151,20 @@ export function usePackageOp() {
           </div>
         )}
         <DialogFooter>
-          <Button variant="ghost" onClick={() => setPending(null)}>Cancel</Button>
-          <Button
-            variant={plan?.remove?.length ? "destructive" : "default"}
-            disabled={blocked.length > 0}
-            onClick={() => void confirm()}
-          >
-            Confirm {pending?.op}
-          </Button>
+          {pending?.phase ? (
+            <Button variant="ghost" disabled={running} onClick={() => setPending(null)}>Close</Button>
+          ) : (
+            <>
+              <Button variant="ghost" onClick={() => setPending(null)}>Cancel</Button>
+              <Button
+                variant={plan?.remove?.length ? "destructive" : "default"}
+                disabled={blocked.length > 0}
+                onClick={() => void confirm()}
+              >
+                Confirm {pending?.op}
+              </Button>
+            </>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -82,3 +82,32 @@ func TestSplitNmcliFields(t *testing.T) {
 		}
 	}
 }
+
+func TestParseIPJSON(t *testing.T) {
+	addr := []byte(`[
+ {"ifname":"lo","link_type":"loopback","operstate":"UNKNOWN","addr_info":[{"family":"inet","local":"127.0.0.1","prefixlen":8,"scope":"host"}]},
+ {"ifname":"end0","link_type":"ether","operstate":"UP","address":"c0:74:2b:fe:aa:01","addr_info":[
+   {"family":"inet","local":"192.168.31.87","prefixlen":24,"scope":"global","dynamic":true},
+   {"family":"inet6","local":"fe80::1","prefixlen":64,"scope":"link"}]},
+ {"ifname":"gre0","link_type":"gre","operstate":"DOWN","addr_info":[]},
+ {"ifname":"veth1a2b","link_type":"ether","operstate":"UP","addr_info":[]},
+ {"ifname":"docker0","link_type":"ether","operstate":"DOWN","addr_info":[{"family":"inet","local":"172.17.0.1","prefixlen":16,"scope":"global"}]}
+]`)
+	route := []byte(`[{"dst":"default","gateway":"192.168.31.1","dev":"end0"}]`)
+	ifs, err := parseIPJSON(addr, route, "# generated\nnameserver 192.168.31.1\nnameserver 1.1.1.1\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(ifs) != 2 {
+		t.Fatalf("loopback, fallback tunnels and veths must be skipped, got %+v", ifs)
+	}
+	e := ifs[0]
+	if e.Name != "end0" || e.Type != "ethernet" || e.State != "up" || e.IPv4Method != "auto" ||
+		len(e.IPv4) != 1 || e.IPv4[0] != "192.168.31.87/24" || e.IPv4GW != "192.168.31.1" || len(e.DNS) != 2 || len(e.IPv6) != 0 {
+		t.Errorf("end0 parsed wrong: %+v", e)
+	}
+	d := ifs[1]
+	if d.Type != "bridge" || d.IPv4Method != "manual" || d.IPv4GW != "" || d.DNS != nil {
+		t.Errorf("docker0 parsed wrong: %+v", d)
+	}
+}

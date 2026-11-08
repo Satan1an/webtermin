@@ -14,16 +14,24 @@ func (s *Server) handleNetworkList(w http.ResponseWriter, r *http.Request) {
 	ifs, err := network.List(r.Context())
 	if err != nil {
 		if errors.Is(err, network.ErrNotAvailable) {
+			// No NetworkManager: show what iproute2 sees, read-only.
+			ro, roErr := network.ListReadOnly(r.Context())
+			if roErr != nil {
+				s.Log.Warn("read-only network view failed", "err", roErr)
+				ro = []network.Interface{}
+			}
 			writeJSON(w, 200, map[string]any{
 				"available":  false,
-				"interfaces": []any{},
+				"readonly":   true,
+				"manager":    network.Manager(r.Context()),
+				"interfaces": ro,
 			})
 			return
 		}
 		writeJSONError(w, 500, err.Error())
 		return
 	}
-	writeJSON(w, 200, map[string]any{"available": true, "interfaces": ifs})
+	writeJSON(w, 200, map[string]any{"available": true, "manager": "NetworkManager", "interfaces": ifs})
 }
 
 func (s *Server) handleNetworkHostname(w http.ResponseWriter, r *http.Request) {

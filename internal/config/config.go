@@ -16,6 +16,23 @@ type Config struct {
 	Terminal TerminalConfig `yaml:"terminal"`
 	Logging  LoggingConfig  `yaml:"logging"`
 	OIDC     OIDCConfig     `yaml:"oidc"`
+	Notify   NotifyConfig   `yaml:"notify"`
+}
+
+// NotifyConfig sends alerts to a Telegram chat. Create a bot with @BotFather,
+// put its token here, and the numeric chat id of the chat (or group) that
+// should receive alerts. Empty token or chat id = notifications off.
+type NotifyConfig struct {
+	Telegram struct {
+		BotToken string `yaml:"bot_token"`
+		ChatID   string `yaml:"chat_id"`
+	} `yaml:"telegram"`
+	// Events limits alerts to these kinds; empty = all of them. See
+	// internal/notify for the names (login, lockout, denied, reboot, setup,
+	// service_failed, disk, updates).
+	Events []string `yaml:"events"`
+	// DiskPct is the filesystem usage that triggers a disk alert (default 90).
+	DiskPct int `yaml:"disk_pct"`
 }
 
 // OIDCConfig wires the panel to an external identity provider. When

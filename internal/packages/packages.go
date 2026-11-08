@@ -113,10 +113,7 @@ func run(ctx context.Context, op string, allowRemove bool, names ...string) erro
 		}
 		cmd := exec.CommandContext(ctx, "apt-get", args...)
 		cmd.Env = append(cmd.Environ(), "DEBIAN_FRONTEND=noninteractive")
-		out, err := cmd.CombinedOutput()
-		if err != nil {
-			return fmt.Errorf("apt-get %s: %v: %s", op, err, strings.TrimSpace(string(out)))
-		}
+		return execLogged(cmd, "apt-get "+op)
 	case DNF:
 		base := []string{"-y"}
 		switch op {
@@ -131,15 +128,9 @@ func run(ctx context.Context, op string, allowRemove bool, names ...string) erro
 		default:
 			return fmt.Errorf("unsupported op %q", op)
 		}
-		cmd := exec.CommandContext(ctx, "dnf", args...)
-		out, err := cmd.CombinedOutput()
-		if err != nil {
-			return fmt.Errorf("dnf %s: %v: %s", op, err, strings.TrimSpace(string(out)))
-		}
-	default:
-		return errors.New("no supported package manager found")
+		return execLogged(exec.CommandContext(ctx, "dnf", args...), "dnf "+op)
 	}
-	return nil
+	return errors.New("no supported package manager found")
 }
 
 // --- apt parsers ---

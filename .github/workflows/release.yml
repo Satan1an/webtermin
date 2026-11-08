@@ -4,13 +4,19 @@ on:
   push:
     tags:
       - 'v*'
+  # Rebuild and redeploy the APT repository from the existing releases without
+  # cutting a new one (e.g. after adding the signing key). Skips GoReleaser.
+  workflow_dispatch:
 
 permissions:
-  contents: write    # for creating the Release + uploading artefacts
+  contents: read
 
 jobs:
   goreleaser:
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write    # for creating the Release + uploading artefacts
     steps:
       - uses: actions/checkout@v7
         with:
@@ -35,3 +41,108 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Signed APT repository served from GitHub Pages (see docs/apt-repo.md).
+  # Rebuilt from scratch on every run out of the .debs attached to the latest
+  # releases, so the published Release assets stay the single source of truth
+  # and nothing binary accumulates in git history.
+  apt-repo:
+    needs: goreleaser
+    # Run after a successful release, or on manual dispatch (goreleaser skipped).
+    if: ${{ !cancelled() && (needs.goreleaser.result == 'success' || needs.goreleaser.result == 'skipped') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read     # gh release list/download
+    outputs:
+      built: ${{ steps.build.outputs.built }}
+    env:
+      APT_GPG_PRIVATE_KEY: ${{ secrets.APT_GPG_PRIVATE_KEY }}
+      KEEP_RELEASES: 5   # newest non-prerelease releases kept, so `apt install webtermin=<ver>` can downgrade
+    steps:
+      - name: Check signing key
+        id: key
+        run: |
+          if [ -z "$APT_GPG_PRIVATE_KEY" ]; then
+            echo "::notice title=APT repo skipped::APT_GPG_PRIVATE_KEY secret is not set; see docs/apt-repo.md"
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v7
+        if: steps.key.outputs.present == 'true'
+
+      - name: Install tools
+        if: steps.key.outputs.present == 'true'
+        run: |
+          command -v apt-ftparchive >/dev/null || {
+            sudo apt-get update -qq && sudo apt-get install -y -qq apt-utils
+          }
+
+      - name: Download .debs of the latest releases
+        if: steps.key.outputs.present == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/debs"
+          tags=$(gh release list --repo "$GITHUB_REPOSITORY" --exclude-drafts --exclude-pre-releases \
+                   --limit "$KEEP_RELEASES" --json tagName --jq '.[].tagName')
+          [ -n "$tags" ] || { echo "::error::no published releases found"; exit 1; }
+          for tag in $tags; do
+            echo "::group::$tag"
+            gh release download "$tag" --repo "$GITHUB_REPOSITORY" --pattern '*.deb' \
+              --dir "$RUNNER_TEMP/debs" --clobber
+            echo "::endgroup::"
+          done
+          ls -l "$RUNNER_TEMP/debs"
+
+      - name: Import signing key
+        if: steps.key.outputs.present == 'true'
+        id: gpg
+        run: |
+          export GNUPGHOME="$RUNNER_TEMP/gnupg"
+          install -d -m 700 "$GNUPGHOME"
+          echo "GNUPGHOME=$GNUPGHOME" >> "$GITHUB_ENV"
+          printf '%s\n' "$APT_GPG_PRIVATE_KEY" | gpg --batch --import
+          fpr=$(gpg --batch --with-colons --list-secret-keys | awk -F: '$1=="fpr"{print $10; exit}')
+          [ -n "$fpr" ] || { echo "::error::APT_GPG_PRIVATE_KEY contains no secret key"; exit 1; }
+          echo "fpr=$fpr" >> "$GITHUB_OUTPUT"
+
+      - name: Build signed repository
+        if: steps.key.outputs.present == 'true'
+        id: build
+        env:
+          GPG_PASSPHRASE: ${{ secrets.APT_GPG_PASSPHRASE }}
+        run: |
+          packaging/apt/build-repo.sh "$RUNNER_TEMP/debs" "$RUNNER_TEMP/site" "${{ steps.gpg.outputs.fpr }}"
+          # Self-check: the signatures must verify against the published key.
+          gpgv --keyring "$RUNNER_TEMP/site/webtermin.gpg" "$RUNNER_TEMP/site/dists/stable/InRelease"
+          gpgv --keyring "$RUNNER_TEMP/site/webtermin.gpg" \
+            "$RUNNER_TEMP/site/dists/stable/Release.gpg" "$RUNNER_TEMP/site/dists/stable/Release"
+          echo "built=true" >> "$GITHUB_OUTPUT"
+
+      - name: Forget signing key
+        if: always() && steps.key.outputs.present == 'true'
+        run: rm -rf "$RUNNER_TEMP/gnupg"
+
+      - uses: actions/upload-pages-artifact@v4
+        if: steps.build.outputs.built == 'true'
+        with:
+          path: ${{ runner.temp }}/site
+
+  apt-pages:
+    needs: apt-repo
+    if: ${{ !cancelled() && needs.apt-repo.outputs.built == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write       # deploy to GitHub Pages
+      id-token: write    # OIDC token deploy-pages uses to prove the origin
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4
