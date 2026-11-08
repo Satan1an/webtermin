@@ -34,7 +34,6 @@ common server-software risk classes, with automated scans on top.
 ### Known by-design trade-offs
 
 - The panel process runs as **root** — required to manage system users, services, and arbitrary host files. Mitigated by Argon2id + 2FA + audit log + the action allowlist.
-- The Docker compose file runs `privileged: true` with host `/etc`, `/home`, and `/run/dbus` bind-mounted — required to manage the host *from* a container.
 - CSP allows `'unsafe-eval'` (Monaco editor workers) and `'unsafe-inline'` styles (Tailwind atomic CSS).
 - Roles (viewer / operator / admin) are enforced, but because the panel runs as root the line is drawn at *root-equivalence*: anything that would give a shell or file access as root — the file manager, a root terminal, privileged / host-network / host-bind containers, other users' crontabs, backups — is admin-only. See the 2026-11 review below.
 
@@ -62,8 +61,8 @@ minor release receives security fixes.
 
 | Version  | Supported          |
 | -------- | ------------------ |
-| `0.9.x`  | :white_check_mark: |
-| `< 0.9`  | :x:                |
+| `0.10.x` | :white_check_mark: |
+| `< 0.10` | :x:                |
 
 ## Reporting a vulnerability
 
@@ -86,16 +85,11 @@ If GitHub's flow isn't an option, email **work@anubis.ooo** with subject
 - Argument-injection or path-traversal in any module — even if it just
   produces an unexpected error, it's worth reporting.
 - TLS, CSP, or cookie misconfigurations that weaken defaults.
-- Container-escape paths in the documented Docker setup (beyond the
-  inherent privilege the `privileged: true` mount-set grants).
 
 ## What's out of scope
 
-- The fact that `docker-compose.yml` runs the container `privileged: true`
-  and bind-mounts host paths — this is by design (the panel manages the
-  host).
 - The fact that the panel process runs as `root` — required for systemd /
-  user / file management. Per-user RBAC is on the roadmap.
+  user / file management.
 - Reports against test or example code in branches that aren't `main`.
 
 ## Disclosure timeline

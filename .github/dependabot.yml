@@ -58,20 +58,3 @@ updates:
     commit-message:
       prefix: "chore(ci)"
 
-  - package-ecosystem: docker
-    directory: /
-    schedule:
-      interval: weekly
-      day: monday
-    open-pull-requests-limit: 3
-    commit-message:
-      prefix: "chore(docker)"
-    # Pin to known-stable major channels; Dependabot can still suggest patch
-    # updates within the major (e.g. 22.10 → 22.11).
-    ignore:
-      - dependency-name: "node"
-        update-types: ["version-update:semver-major"]
-      - dependency-name: "golang"
-        update-types: ["version-update:semver-major"]
-      - dependency-name: "debian"
-        update-types: ["version-update:semver-major"]

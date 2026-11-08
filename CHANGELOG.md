@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.0] — 2026-11-08
+
 ### Security
 
 - Viewers could read and download any host file as root — including the
@@ -29,6 +31,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   CI builds with the newest stable Go and runs weekly.
 
 See the 2026-11-08 review in [SECURITY.md](SECURITY.md).
+
+### Removed
+
+- Docker image and `docker-compose.yml` install. A host-management panel
+  in a container needs `privileged` + host PID + the host filesystem, so it
+  isolated nothing — and half the modules acted on the container instead of
+  the host (terminal, `apt`, cron, ufw, nmcli, WireGuard, file manager). Use
+  the `.deb` / `.rpm` / `.apk` packages. Existing `ghcr.io/satan1an/webtermin`
+  images are no longer updated.
+
+### Changed
+
+- CI and release actions moved to their Node 24 majors (Node 20 has been
+  removed from GitHub-hosted runners).
 
 ## [0.9.1] — 2026-05-17
 

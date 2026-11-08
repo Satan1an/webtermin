@@ -16,15 +16,15 @@ jobs:
     name: build + vet
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: 'npm'
           cache-dependency-path: web/package-lock.json
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v7
         with:
           go-version: 'stable'  # newest supported Go: stdlib CVE fixes, never an EOL toolchain
           cache: true
@@ -63,7 +63,7 @@ jobs:
         run: go build -trimpath -ldflags="-s -w" -o /tmp/webtermin-arm64 ./cmd/webtermin
 
       - name: Upload host binary as artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: webtermin-snapshot-${{ github.sha }}
           path: /tmp/webtermin*
@@ -73,9 +73,9 @@ jobs:
     name: staticcheck + gosec + govulncheck
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v7
         with:
           go-version: 'stable'  # newest supported Go: stdlib CVE fixes, never an EOL toolchain
           cache: true
@@ -118,7 +118,7 @@ jobs:
 
       - name: Upload gosec SARIF
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: gosec-sarif-${{ github.sha }}
           path: gosec.sarif
@@ -128,11 +128,11 @@ jobs:
     name: gitleaks
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0   # gitleaks scans full history
 
       - name: gitleaks
-        uses: gitleaks/gitleaks-action@v2
+        uses: gitleaks/gitleaks-action@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

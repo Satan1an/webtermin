@@ -69,21 +69,15 @@ sudo apt install ./webtermin.deb
 
 Откройте **`https://<хост>:8443`** чтобы пройти первоначальную настройку.
 
-### Docker
+### Почему нет Docker-образа?
 
-```bash
-docker compose up -d --build
-```
-
-См. [`docker-compose.yml`](docker-compose.yml) — нужны bind-mount'ы хостовых директорий и `privileged: true`, потому что контейнер управляет хостом. Относитесь к паролю панели как к паролю root SSH.
+webtermin управляет самим хостом — systemd, пользователями, пакетами, firewall, файлами. Контейнеру для этого нужны `privileged`, PID-namespace и файловая система хоста, то есть он ничего не изолирует, а каждому модулю пришлось бы дотягиваться до хоста. Ставьте нативно (`.deb` / `.rpm` / `.apk`). Модуль Docker — управление контейнерами на хосте — работает как обычно.
 
 ## Сборка из исходников
 
 ```bash
 make build         # нативный бинарник для текущего хоста
 make build-arm64   # кросс-компиляция aarch64 (OrangePi / RPi)
-make docker        # локальный Docker-образ
-make docker-arm64  # arm64 Docker-образ через buildx
 ```
 
 Требуется Go ≥ 1.26 и Node ≥ 22 (LTS).
@@ -154,7 +148,7 @@ make docker-arm64  # arm64 Docker-образ через buildx
 - ✅ Portainer-grade Docker + Compose stacks
 - ✅ Бэкапы (`/etc/webtermin` + `/var/lib/webtermin` + custom paths в tar.gz)
 - ✅ Non-root режим (sudoers + docker-группа)
-- ✅ `.deb` / `.rpm` / `.apk` пакеты + multi-arch ghcr.io Docker
+- ✅ `.deb` / `.rpm` / `.apk` пакеты
 - ✅ Русскоязычные README + SECURITY
 
 Идеи post-1.0 (когда наберём пользовательский feedback):

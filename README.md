@@ -68,21 +68,15 @@ The .deb installs to `/usr/bin/webtermin`, drops a systemd unit at `/lib/systemd
 
 Open **`https://<host>:8443`** to complete first-run setup.
 
-### Docker
+### Why no Docker image?
 
-```bash
-docker compose up -d --build
-```
-
-See [`docker-compose.yml`](docker-compose.yml) for the host bind-mounts and the `privileged: true` requirement — a container that manages the host needs that level of access. Treat the panel password like root SSH.
+webtermin manages the host itself — systemd, users, packages, firewall, files. A container doing that needs `privileged`, the host PID namespace and the host filesystem, so it isolates nothing, and every module would have to reach back out to the host. Install it natively (`.deb` / `.rpm` / `.apk`) instead. The Docker *module* — managing containers on the host — works as usual.
 
 ## Build from source
 
 ```bash
 make build         # native binary for this host
 make build-arm64   # cross-compile aarch64 (for OrangePi / RPi)
-make docker        # local Docker image
-make docker-arm64  # arm64 Docker image via buildx
 ```
 
 Requires Go ≥ 1.26 and Node ≥ 22 (LTS).
@@ -146,7 +140,7 @@ Initial v0.1 → v0.9 roadmap is **complete**. Highlights of what shipped:
 - ✅ Portainer-grade Docker module + Compose stacks
 - ✅ Backups (tar.gz of `/etc/webtermin` + `/var/lib/webtermin` + custom paths)
 - ✅ Non-root mode (sudoers + docker group)
-- ✅ `.deb` / `.rpm` / `.apk` packages + multi-arch ghcr.io Docker image
+- ✅ `.deb` / `.rpm` / `.apk` packages
 - ✅ Russian-language README + SECURITY
 
 Post-1.0 ideas (gather user feedback first):

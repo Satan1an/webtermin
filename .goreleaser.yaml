@@ -95,49 +95,6 @@ nfpms:
       preremove: packaging/prerm
       postremove: packaging/postrm
 
-# Multi-arch container image published to GitHub Container Registry on each tag.
-# Uses the docker-buildx pattern via goreleaser's dockers + docker_manifests.
-dockers:
-  - image_templates:
-      - "ghcr.io/satan1an/webtermin:{{ .Version }}-amd64"
-    use: buildx
-    goarch: amd64
-    dockerfile: Dockerfile.goreleaser
-    # Files goreleaser drops into the build context by default are just the
-    # binary + linux packages. Anything the Dockerfile COPYs beyond that must
-    # be listed here so it gets copied into the per-build tmp dir.
-    extra_files:
-      - config.example.yaml
-    build_flag_templates:
-      - "--platform=linux/amd64"
-      - "--label=org.opencontainers.image.title=webtermin"
-      - "--label=org.opencontainers.image.version={{ .Version }}"
-      - "--label=org.opencontainers.image.source=https://github.com/Satan1an/webtermin"
-      - "--label=org.opencontainers.image.licenses=MIT"
-  - image_templates:
-      - "ghcr.io/satan1an/webtermin:{{ .Version }}-arm64"
-    use: buildx
-    goarch: arm64
-    dockerfile: Dockerfile.goreleaser
-    extra_files:
-      - config.example.yaml
-    build_flag_templates:
-      - "--platform=linux/arm64"
-      - "--label=org.opencontainers.image.title=webtermin"
-      - "--label=org.opencontainers.image.version={{ .Version }}"
-      - "--label=org.opencontainers.image.source=https://github.com/Satan1an/webtermin"
-      - "--label=org.opencontainers.image.licenses=MIT"
-
-docker_manifests:
-  - name_template: "ghcr.io/satan1an/webtermin:{{ .Version }}"
-    image_templates:
-      - "ghcr.io/satan1an/webtermin:{{ .Version }}-amd64"
-      - "ghcr.io/satan1an/webtermin:{{ .Version }}-arm64"
-  - name_template: "ghcr.io/satan1an/webtermin:latest"
-    image_templates:
-      - "ghcr.io/satan1an/webtermin:{{ .Version }}-amd64"
-      - "ghcr.io/satan1an/webtermin:{{ .Version }}-arm64"
-
 checksum:
   name_template: 'checksums.txt'
 

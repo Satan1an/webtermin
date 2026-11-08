@@ -1,4 +1,4 @@
-.PHONY: web build build-arm64 run clean docker docker-arm64 docker-multiarch docker-up docker-down
+.PHONY: web build build-arm64 run clean
 
 web:
 	cd web && npm install && npm run build
@@ -19,18 +19,3 @@ run: build
 clean:
 	rm -rf webtermin webtermin-arm64 data web/dist web/node_modules
 
-# Docker — uses buildx so arm64 builds work from an x86 dev machine.
-docker:
-	docker build -t webtermin:local .
-
-docker-arm64:
-	docker buildx build --platform linux/arm64 -t webtermin:arm64 --load .
-
-docker-multiarch:
-	docker buildx build --platform linux/amd64,linux/arm64 -t webtermin:latest --push .
-
-docker-up:
-	docker compose up -d --build
-
-docker-down:
-	docker compose down

@@ -39,8 +39,6 @@ Requires Go ≥ 1.26 and Node ≥ 22 (LTS).
 ```bash
 make build           # produces ./webtermin for the host arch
 make build-arm64     # cross-compiles for ARM64 (no extra toolchain needed)
-make docker          # builds the local docker image
-make docker-arm64    # multi-arch docker image via buildx
 ```
 
 Run it:
@@ -121,8 +119,6 @@ Tags trigger GoReleaser via `.github/workflows/release.yml`. Bump
 
 * `.deb` + `.rpm` + `.apk` × `amd64` + `arm64`
 * `linux_amd64.tar.gz` + `linux_arm64.tar.gz`
-* multi-arch Docker image at `ghcr.io/satan1an/webtermin:vX.Y.Z`
-  + `latest`
 * a GitHub Release with the CHANGELOG section embedded
 
 If a release fails partway, fix and ship as `vX.Y.Z+1`. Don't rewrite
