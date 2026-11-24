@@ -1,0 +1,82 @@
+name: Security
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  # Weekly re-run so newly published CVEs show up without a new commit.
+  schedule:
+    - cron: '0 6 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  trivy:
+    name: trivy (npm + Go deps, Dockerfiles)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    env:
+      # Pinned image instead of the trivy GitHub Action: a moving action tag is a supply-chain risk.
+      TRIVY: docker run --rm -v ${{ github.workspace }}:/src -w /src -v trivy-cache:/root/.cache aquasec/trivy:0.76.2
+    steps:
+      - uses: actions/checkout@v7
+
+      # Everything, all severities -> Security tab (Code scanning).
+      # e2e/ is a throwaway systemd test stand that runs as root on purpose.
+      - name: trivy SARIF report
+        run: $TRIVY fs --scanners vuln,misconfig --skip-dirs e2e --format sarif --output trivy.sarif .
+
+      - uses: github/codeql-action/upload-sarif@v4
+        if: always()
+        with:
+          sarif_file: trivy.sarif
+          category: trivy
+
+      # Gate: fail only on HIGH/CRITICAL dependency CVEs that already have a fix.
+      - name: trivy gate (fixable HIGH/CRITICAL)
+        run: $TRIVY fs --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 .
+
+  codeql:
+    name: CodeQL (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: go
+            build-mode: manual
+          - language: javascript-typescript
+            build-mode: none
+          - language: actions
+            build-mode: none
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-go@v7
+        if: matrix.language == 'go'
+        with:
+          go-version: 'stable'
+          cache: true
+
+      - uses: github/codeql-action/init@v4
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+          queries: security-extended
+
+      # The SPA isn't needed for analysis, only the embed target must exist.
+      - name: Build Go
+        if: matrix.language == 'go'
+        run: |
+          mkdir -p web/dist && touch web/dist/.gitkeep
+          go build ./...
+
+      - uses: github/codeql-action/analyze@v4
+        with:
+          category: /language:${{ matrix.language }}
